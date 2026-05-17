@@ -4,8 +4,25 @@ import protect from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
+/**
+ * /api/v1/auth/register
+ * Register user and create session with refresh token and access token
+ */
+
 router.route('/register').post(authController.register);
 
+/**
+ * /api/v1/auth/me
+ * Get current logged in user data
+ */
+
 router.route('/me').get(protect, authController.getMe);
+
+/**
+ * /api/v1/auth/refresh
+ * Create refresh token and access
+ */
+
+router.route('/refresh').get(authController.refreshToken);
 
 export default router;

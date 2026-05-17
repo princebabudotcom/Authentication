@@ -10,6 +10,15 @@ const createSession = async (userId, refreshToken, ip, agent) => {
   });
 };
 
+const findSession = async (refreshTokenHash) => {
+  return await Session.findOne({
+    refreshToken: refreshTokenHash,
+    expiresAt: { $gt: new Date() }, // Check if session is still valid
+    isRevoked: false,
+  });
+};
+
 export default {
   createSession,
+  findSession,
 };
