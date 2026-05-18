@@ -87,8 +87,25 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(user);
 });
 
+/**
+ * /api/v1/auth/logout
+ * Logout user and clear refresh token and access token cookies
+ */
+
+const logout = asyncHandler(async (req, res) => {
+  const refreshToken = req.cookies?.refreshToken;
+
+  await authService.logout(refreshToken);
+
+  res.clearCookie('refreshToken');
+  res.clearCookie('accessToken');
+
+  res.status(200).json({ message: 'Logged out successfully' });
+});
+
 export default {
   register,
   refreshToken,
   getMe,
+  logout,
 };

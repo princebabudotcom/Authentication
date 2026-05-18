@@ -4,29 +4,38 @@ import userRepo from '../repos/user.repo.js';
 import ApiError from '../utils/apiError.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
+import sendEmail from '../utils/sendEmail.js';
 
 const register = async (userData, ip, agent) => {
   if (!userData.email || !userData.password || !userData.username || !userData.fullName) {
     throw new Error('Missing required fields');
   }
 
+  // Destructure user data for easier access
   const { email, username, fullName, password } = userData;
 
+  // Check if a user with the same email or username already exists
   const existUser = await userRepo.isUserExists(email, username);
 
+  // If a user with the same email or username exists, throw an error
   if (existUser) throw new ApiError(400, 'Email or username already exists');
 
+  // create new user
   const user = await userRepo.createUser(userData);
 
-  const accessToken = await user.generateAccessToken();
+  // Generate access token and refresh token for the new user
   const refreshToken = await user.generateRefreshToken();
 
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
+  const accessToken = await user.generateAccessToken();
+
   const userJson = user.toJSON();
 
+  // Create a new session for the user with the hashed refresh token, IP address, and user agent
   await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
 
+  // Return the access token, refresh token, and user data
   return { accessToken, refreshToken, user: userJson };
 };
 
@@ -98,8 +107,36 @@ const getMe = async (userId) => {
   }
 };
 
+const logout = async (refreshToken) => {
+  if (!refreshToken) throw new ApiError(400, 'Refresh token is required for logout');
+
+  let decoded;
+
+  try {
+    decoded = jwt.verify(refreshToken, config.REFRESH_TOKEN);
+  } catch (error) {
+    if (error instanceof JsonWebTokenError) throw new ApiError(401, 'Invalid refresh token');
+    throw new ApiError(500, 'Failed to verify refresh token');
+
+    if (!decoded || !decoded.id) throw new ApiError(401, 'Invalid refresh token payload');
+  }
+
+  const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+  const session = await sessionRepo.findSession(refreshTokenHash);
+
+  if (!session) throw new ApiError(404, 'Session not found');
+
+  session.isRevoked = true;
+  session.revokedAt = new Date();
+  await session.save();
+
+  return true;
+};
+
 export default {
   register,
   refreshToken,
   getMe,
+  logout,
 };

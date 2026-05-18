@@ -40,4 +40,14 @@ const protect = async (req, res, next) => {
   }
 };
 
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return next(new ApiError(403, 'Forbidden'));
+    }
+
+    next();
+  };
+};
+
 export default protect;

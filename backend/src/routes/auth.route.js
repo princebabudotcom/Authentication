@@ -25,4 +25,11 @@ router.route('/me').get(protect, authController.getMe);
 
 router.route('/refresh').get(authController.refreshToken);
 
+/**
+ * /api/v1/auth/logout
+ * Logout user by revoking the session and clearing cookies
+ */
+
+router.route('/logout').get(protect, authController.logout);
+
 export default router;
