@@ -38,6 +38,37 @@ const register = asyncHandler(async (req, res) => {
 });
 
 /**
+ * /api/v1/auth/login
+ * Login user and create session with refresh token and access token
+ */
+
+const login = asyncHandler(async (req, res) => {
+  const { identifier, password } = req.body;
+  const { accessToken, refreshToken, user } = await authService.login(
+    identifier,
+    password,
+    req.ip,
+    req.headers['user-agent']
+  );
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  res.status(200).json(user);
+});
+
+/**
  * /api/v1/auth/refresh
  * Create refresh token and access
  */
@@ -105,6 +136,7 @@ const logout = asyncHandler(async (req, res) => {
 
 export default {
   register,
+  login,
   refreshToken,
   getMe,
   logout,

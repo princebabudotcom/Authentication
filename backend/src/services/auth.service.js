@@ -39,6 +39,38 @@ const register = async (userData, ip, agent) => {
   return { accessToken, refreshToken, user: userJson };
 };
 
+const login = async (identifier, password, ip, agent) => {
+  if (!identifier || !password) throw new ApiError(400, 'User credential is required');
+
+  // Find the user by email or username
+  const user = await userRepo.getUser(identifier);
+
+  // Prevent user enumeration
+  if (!user || !(await user.comparePassword(password))) {
+    throw new ApiError(401, 'Invalid credentials');
+  }
+
+  // Generate access token and refresh token for the user
+
+  const refreshToken = await user.generateRefreshToken();
+
+  // hashed token to store in session
+  const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+  // Create a new session for the user with the hashed refresh token, IP address, and user agent
+  await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+
+  const accessToken = await user.generateAccessToken();
+
+  const userJson = user.toJSON();
+
+  return {
+    user: userJson,
+    accessToken,
+    refreshToken,
+  };
+};
+
 const refreshToken = async (refreshToken, ip, agent) => {
   // Check if refresh token is provided
   if (!refreshToken) throw new ApiError(400, 'Refresh token is required');
@@ -136,6 +168,7 @@ const logout = async (refreshToken) => {
 
 export default {
   register,
+  login,
   refreshToken,
   getMe,
   logout,

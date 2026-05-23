@@ -18,9 +18,16 @@ const isUserExists = async (email, username) => {
   });
 };
 
+const getUser = async (identifier) => {
+  return await User.findOne({
+    $or: [{ email: identifier }, { username: identifier }],
+  }).select('+password');
+};
+
 export default {
   createUser,
   findUserByEmail,
   findUserById,
   isUserExists,
+  getUser,
 };

@@ -12,6 +12,13 @@ const router = Router();
 router.route('/register').post(authController.register);
 
 /**
+ * /api/v1/auth/login
+ * Login user and create session with refresh and access token
+ */
+
+router.route('/login').post(authController.login);
+
+/**
  * /api/v1/auth/me
  * Get current logged in user data
  */
