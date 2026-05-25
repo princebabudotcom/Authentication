@@ -9,4 +9,7 @@ export default defineConfig({
     // Add Tailwind CSS plugin
     tailwindcss(),
   ],
+  server: {
+    host: true,
+  },
 });

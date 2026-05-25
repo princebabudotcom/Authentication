@@ -6,6 +6,8 @@ import PublicRoute from "./PublicRoute";
 import AppLayout from "../App/AppLayout";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import Home from "../pages/Home/Home";
 
 const router = createBrowserRouter([
   {
@@ -24,6 +26,10 @@ const router = createBrowserRouter([
         path: "register",
         element: <Register />,
       },
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
+      },
     ],
   },
 
@@ -38,7 +44,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <div>Dashboard</div>,
+        element: <Home />,
       },
     ],
   },
