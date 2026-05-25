@@ -1,31 +1,39 @@
 import User from '../models/user.model.js';
 
-const createUser = async (userData) => {
-  return await User.create(userData);
+const createUser = (userData) => {
+  return User.create(userData);
 };
 
-const findUserByEmail = async (email) => {
-  return await User.findOne({ email });
+const findUserByEmail = (email) => {
+  return User.findOne({ email }).lean();
 };
 
-const findUserById = async (id) => {
-  return await User.findById(id);
+const findUserById = (id) => {
+  return User.findById(id);
 };
 
-const isUserExists = async (email, username) => {
-  return await User.findOne({
+const isUserExists = (email, username) => {
+  return User.exists({
     $or: [{ email }, { username }],
   });
 };
 
-const getUser = async (identifier) => {
-  return await User.findOne({
+const getUser = (identifier) => {
+  return User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
   }).select('+password');
 };
 
+const updateUser = (id, updateData) => {
+  return User.findByIdAndUpdate(id, updateData, {
+    runValidators: true,
+    returnDocument: 'after',
+  });
+};
+
 export default {
   createUser,
+  updateUser,
   findUserByEmail,
   findUserById,
   isUserExists,

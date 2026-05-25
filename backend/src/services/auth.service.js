@@ -5,6 +5,9 @@ import ApiError from '../utils/apiError.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import sendEmail from '../utils/sendEmail.js';
+import LoginAlert from '../emails/templates/loginAlert.email.js';
+import logger from '../config/winston.logger.js';
+import welcomeTemplate from '../emails/templates/register.email.js';
 
 const register = async (userData, ip, agent) => {
   if (!userData.email || !userData.password || !userData.username || !userData.fullName) {
@@ -24,16 +27,28 @@ const register = async (userData, ip, agent) => {
   const user = await userRepo.createUser(userData);
 
   // Generate access token and refresh token for the new user
-  const refreshToken = await user.generateRefreshToken();
+  const refreshToken = user.generateRefreshToken();
 
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-  const accessToken = await user.generateAccessToken();
-
-  const userJson = user.toJSON();
+  const accessToken = user.generateAccessToken();
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
   await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+
+  // send email user is register successfully
+  sendEmail({
+    subject: 'User account register sucessfully',
+    to: user.email,
+    html: welcomeTemplate({
+      name: user.fullName,
+      loginUrl: 'https://gradebuilds.in',
+    }),
+  }).catch((err) => {
+    logger.error(`Error on sending email ${err}`);
+  });
+
+  const userJson = user.toJSON();
 
   // Return the access token, refresh token, and user data
   return { accessToken, refreshToken, user: userJson };
@@ -45,22 +60,65 @@ const login = async (identifier, password, ip, agent) => {
   // Find the user by email or username
   const user = await userRepo.getUser(identifier);
 
+  if (!user) throw new ApiError(401, 'Invalid credentials');
+
+  // check is user locked
+
+  if (user.isLocked)
+    throw new ApiError(
+      403,
+      'Account is locked due to multiple failed login attempts. Please try again later.'
+    );
+
   // Prevent user enumeration
-  if (!user || !(await user.comparePassword(password))) {
+  if (!(await user.comparePassword(password))) {
+    user.loginAttempts += 1; // Increment login attempts on failed login
+
+    if (user.loginAttempts >= 5) {
+      user.lockUntil = Date.now() + 30 * 60 * 1000; // Lock account for 30 minutes
+    }
+
+    await user.save();
+
     throw new ApiError(401, 'Invalid credentials');
   }
 
   // Generate access token and refresh token for the user
 
-  const refreshToken = await user.generateRefreshToken();
+  const refreshToken = user.generateRefreshToken();
 
   // hashed token to store in session
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
-  await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
 
-  const accessToken = await user.generateAccessToken();
+  await Promise.all([
+    // create session with hashed refresh token to prevent token theft from database
+    sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent),
+    // Reset login attempts and lock status on successful login
+    userRepo.updateUser(user._id, {
+      lastlogin: new Date(),
+      lockUntil: undefined,
+      loginAttempts: 0, // Reset login attempts on successful login
+    }),
+  ]);
+
+  // sending login alert email to user user .catch for for send
+  sendEmail({
+    to: user.email,
+    subject: 'New Login Alert',
+    html: LoginAlert({
+      fullName: user.fullName,
+      ip,
+      agent,
+      loginTime: new Date().toLocaleString(),
+      email: user.email,
+    }),
+  }).catch((error) => {
+    logger.error('Failed to send login alert email:', error);
+  });
+
+  const accessToken = user.generateAccessToken();
 
   const userJson = user.toJSON();
 
@@ -105,8 +163,8 @@ const refreshToken = async (refreshToken, ip, agent) => {
   if (!user) throw new ApiError(404, 'User not found');
 
   // create new access token and refresh token
-  const newAccessToken = await user.generateAccessToken();
-  const newRefreshToken = await user.generateRefreshToken();
+  const newAccessToken = user.generateAccessToken();
+  const newRefreshToken = user.generateRefreshToken();
 
   // hash the new refresh token and update session with new hash, ip, agent, and expiration
   const newRefreshTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
@@ -135,7 +193,8 @@ const getMe = async (userId) => {
 
     return user.toJSON();
   } catch (error) {
-    throw new ApiError(500, 'Failed to retrieve user data');
+    logger.error(`Failed to fetch data ${error}`);
+    throw new ApiError(500, 'Failed to retrieve user data' + error);
   }
 };
 
