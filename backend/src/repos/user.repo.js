@@ -4,8 +4,15 @@ const createUser = (userData) => {
   return User.create(userData);
 };
 
-const findUserByEmail = (email) => {
-  return User.findOne({ email }).lean();
+const findUserByEmail = async (email) => {
+  return User.findOne({ email })
+    .select(
+      '+emailVerificationSentAt ' +
+        '+emailVerificationAttempts ' +
+        '+emailVerificationToken ' +
+        '+emailVerificationExpires'
+    )
+    .lean();
 };
 
 const findUserById = (id) => {
@@ -29,6 +36,16 @@ const updateUser = (id, updateData) => {
     runValidators: true,
     returnDocument: 'after',
   });
+};
+
+const verifyEmailToken = (email, hashedOTP) => {
+  return User.findOne({
+    email,
+    emailVerificationToken: hashedOTP,
+    emailVerificationExpires: {
+      $gte: Date.now(),
+    },
+  }).select('+emailVerificationToken ' + '+emailVerificationExpires');
 };
 
 export default {

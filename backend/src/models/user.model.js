@@ -85,6 +85,15 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    emailVerificationSentAt: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
 
     loginAttempts: {
       type: Number,
@@ -157,7 +166,7 @@ userSchema.methods.generateAccessToken = function () {
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
-      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '1m',
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m',
     }
   );
 };

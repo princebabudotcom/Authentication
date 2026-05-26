@@ -9,13 +9,14 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import AuthApi from "../../../api/AuthApi";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    fullname: "",
+    fullName: "",
     username: "",
     email: "",
     password: "",
@@ -41,8 +42,8 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.fullname.trim()) {
-      newErrors.fullname = "Full name is required";
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = "Full name is required";
     }
 
     if (!formData.username.trim()) {
@@ -81,16 +82,13 @@ export default function RegisterPage() {
     try {
       setLoading(true);
 
-      // Example API Request
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await AuthApi.register(formData);
+      console.log(res);
 
-      setSuccess("Account created successfully");
-
+      setSuccess("Registration successful! You can now log in.");
       console.log(formData);
     } catch (error) {
-      setErrors({
-        api: "Something went wrong",
-      });
+      console.log(error.response.data.message);
     } finally {
       setLoading(false);
     }
@@ -211,8 +209,8 @@ export default function RegisterPage() {
 
               <input
                 type="text"
-                name="fullname"
-                value={formData.fullname}
+                name="fullName"
+                value={formData.fullName}
                 onChange={handleChange}
                 placeholder="Enter full name"
                 className={`w-full h-11 rounded-xl bg-zinc-900 border pl-11 pr-4 text-sm outline-none transition

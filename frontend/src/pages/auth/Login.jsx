@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import AuthApi from "../../../api/AuthApi";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -57,16 +58,9 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-
-      // Example API Request
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setSuccess("Login successful");
-      console.log(formData);
+      await AuthApi.login(formData);
     } catch (error) {
-      setErrors({
-        api: "Something went wrong",
-      });
+      console.log(error.response.data.message);
     } finally {
       setLoading(false);
     }

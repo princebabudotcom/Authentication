@@ -8,6 +8,14 @@ import sendEmail from '../utils/sendEmail.js';
 import LoginAlert from '../emails/templates/loginAlert.email.js';
 import logger from '../config/winston.logger.js';
 import welcomeTemplate from '../emails/templates/register.email.js';
+import generateCode from '../utils/generate.Code.js';
+import verifyEmailTemplate from '../emails/templates/verify.email.js';
+import User from '../models/user.model.js';
+import emailVerifiedTemplate from '../emails/templates/emailVerified.email.js';
+
+/**
+ * Phase 1
+ */
 
 const register = async (userData, ip, agent) => {
   if (!userData.email || !userData.password || !userData.username || !userData.fullName) {
@@ -225,10 +233,109 @@ const logout = async (refreshToken) => {
   return true;
 };
 
+/**
+ * Phase 2
+ */
+
+const sendEmailVarification = async ({ email, userId }) => {
+  const user = await userRepo.findUserByEmail(email);
+
+  if (!user) throw new ApiError(404, 'Email not found ');
+
+  // if already verified
+
+  if (user.isEmailVerified) throw new ApiError(400, 'Email already verified');
+
+  // cooldown check
+  if (
+    user.emailVerificationSentAt &&
+    Date.now() - new Date(user.emailVerificationSentAt).getTime() < 2 * 60 * 1000
+  )
+    throw new ApiError(429, 'Please wait 2 minutes before requesting another OTP');
+
+  // max resend attempts
+
+  if (user.emailVerificationAttempts >= 5)
+    throw new ApiError(429, 'Maximum resend attempts exceeded');
+
+  // generate opt
+  const OTP = generateCode.generateOTP();
+
+  //  hashed otp
+  const hashedOTP = generateCode.generateHash(OTP);
+
+  // updated user email verification token
+  await userRepo.updateUser(userId, {
+    emailVerificationToken: hashedOTP,
+    emailVerificationExpires: new Date(Date.now() + 5 * 60 * 1000),
+    emailVerificationSentAt: new Date(),
+    $inc: { emailVerificationAttempts: 1 },
+  });
+
+  sendEmail({
+    to: email,
+    subject: 'Verify Your Email Address',
+    html: verifyEmailTemplate({
+      fullName: user?.fullName,
+      otp: OTP,
+    }),
+  }).catch((err) => {
+    throw new ApiError('Error on sending email OTP');
+    logger.error(`Error on sending email OTP ${err} `);
+  });
+
+  return {
+    success: true,
+    message: 'OTP send sucessfully to email',
+  };
+};
+
+const verifyEmail = async ({ otp, email, userId }) => {
+  if (!otp) throw new ApiError(404, 'OTP is required to verify email');
+
+  const user = await userRepo.findUserByEmail(email);
+
+  if (!user) throw new ApiError(404, 'User not found with this email');
+
+  const hashedOTP = generateCode.generateHash(otp);
+
+  if (user.emailVerificationToken !== hashedOTP.toString())
+    throw new ApiError(400, 'Invalid OTP please enter correct OTP ');
+
+  if (user.emailVerificationExpires < Date.now()) throw new ApiError(400, 'OTP expired');
+
+  await userRepo.updateUser(userId, {
+    isEmailVerified: true,
+    $unset: {
+      emailVerificationToken: 1,
+      emailVerificationExpires: 1,
+      emailVerificationSentAt: 1,
+      emailVerificationAttempts: 0,
+    },
+  });
+
+  sendEmail({
+    to: email,
+    subject: 'Email verified',
+    html: emailVerifiedTemplate({ fullName: user?.fullName }),
+  }).catch((err) => {
+    throw new ApiError(400, 'Email sending error');
+  });
+
+  return {
+    success: true,
+    message: `${user.fullName} your Email is verified succefully`,
+  };
+};
+
 export default {
   register,
   login,
   refreshToken,
   getMe,
   logout,
+
+  // phase 2 => verify email
+  sendEmailVarification,
+  verifyEmail,
 };

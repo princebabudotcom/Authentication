@@ -5,6 +5,7 @@ const app = express();
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morganLogger from './config/morgan.logger.js';
+import cors from 'cors';
 
 const httpServer = http.createServer(app);
 
@@ -14,6 +15,7 @@ app.use(express.urlencoded({ extended: true })); // for parsing application/x-ww
 app.use(cookieParser()); // for parsing cookies
 app.use(helmet()); // for setting various HTTP headers for security
 app.use(morganLogger); // for logging HTTP requests
+app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 
 // routes
 import authRoute from './routes/auth.route.js';
@@ -31,6 +33,7 @@ app.get('/', (req, res) => {
 
 // error handling middleware
 import errorMiddleware from './middlewares/error.middleware.js';
+import corsOptions from './config/cors.js';
 
 app.use(errorMiddleware);
 

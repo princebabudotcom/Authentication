@@ -3,6 +3,11 @@ import authService from '../services/auth.service.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 /**
+ * Phase 1
+ * Basic Authentication
+ */
+
+/**
  * /api/v1/auth/register
  * Register user and create session with refresh token and access token
  */
@@ -115,7 +120,9 @@ const getMe = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'User not found');
   }
 
-  res.status(200).json(user);
+  res.status(200).json({
+    user,
+  });
 });
 
 /**
@@ -134,10 +141,54 @@ const logout = asyncHandler(async (req, res) => {
   res.status(200).json({ message: 'Logged out successfully' });
 });
 
+/**
+ * Phase 2
+ * Email Verification
+ */
+
+/**
+ * /api/v1/auth/verfiy-email
+ *
+ */
+
+const sendVerifyEmailOtp = asyncHandler(async (req, res) => {
+  const { success, message } = await authService.sendEmailVarification({
+    email: req.user?.email,
+    userId: req.user?._id,
+  });
+
+  res.status(200).json({
+    success,
+    message,
+  });
+});
+
+/**
+ * /api/v1/auth/verify-email
+ * verify email using otp
+ */
+
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { success, message } = await authService.verifyEmail({
+    otp: req.body?.otp,
+    email: req.user?.email,
+    userId: req.user?._id,
+  });
+
+  res.status(200).json({
+    success,
+    message,
+  });
+});
+
 export default {
   register,
   login,
   refreshToken,
   getMe,
   logout,
+
+  // phase 2 => verfiy email
+  sendVerifyEmailOtp,
+  verifyEmail,
 };

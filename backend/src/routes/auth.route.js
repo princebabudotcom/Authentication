@@ -39,4 +39,21 @@ router.route('/refresh').get(authController.refreshToken);
 
 router.route('/logout').get(protect, authController.logout);
 
+/**
+ * Phase 2
+ * Email Verification
+ */
+
+/**
+ * /api/v1/auth/verify-email
+ */
+
+router.route('/send-verification-email').post(protect, authController.sendVerifyEmailOtp);
+
+/**
+ * /api/v1/auth/verify-email
+ */
+
+router.route('/verify-email').post(protect, authController.verifyEmail);
+
 export default router;
