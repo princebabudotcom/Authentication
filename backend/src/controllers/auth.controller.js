@@ -1,5 +1,6 @@
 import config from '../config/config.js';
 import authService from '../services/auth.service.js';
+import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 /**
@@ -163,7 +164,7 @@ const sendVerifyEmailOtp = asyncHandler(async (req, res) => {
   });
 });
 
-/**
+/*
  * /api/v1/auth/verify-email
  * verify email using otp
  */
@@ -181,6 +182,54 @@ const verifyEmail = asyncHandler(async (req, res) => {
   });
 });
 
+/*
+ * phase 3
+ * recover password
+ */
+
+/*
+ * /api/v1/auth/forgot-password
+ * Reset pasword using email link
+ */
+
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { success, message, token } = await authService.forgotPasswordToken({
+    email: req.body?.email,
+  });
+
+  if (!success) throw new ApiError(400, 'Somwthing went wrong');
+
+  res.status(200).json({
+    success,
+    message,
+    token,
+  });
+});
+
+/**
+ * /api/v1/auth/verify-password-reset
+ * Reset password
+ */
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const data = req.body;
+  const { token } = req.query;
+
+  if (data?.type === 'email') {
+    const { success, message } = await authService.resetPasswordByEmailLink({
+      email: data.email,
+      token,
+      password: data.password,
+    });
+    return res.status(200).json({
+      success,
+      message,
+    });
+  }
+
+  throw new ApiError(400, 'Invalid reset password type');
+});
+
 export default {
   register,
   login,
@@ -191,4 +240,8 @@ export default {
   // phase 2 => verfiy email
   sendVerifyEmailOtp,
   verifyEmail,
+
+  // phase 3 => recover password
+  forgotPassword,
+  resetPassword,
 };

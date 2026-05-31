@@ -48,6 +48,16 @@ const verifyEmailToken = (email, hashedOTP) => {
   }).select('+emailVerificationToken ' + '+emailVerificationExpires');
 };
 
+const findByPasswordToken = (email, hashedToken) => {
+  return User.findOne({
+    email,
+    passwordResetToken: hashedToken,
+    passwordResetExpires: {
+      $gte: Date.now(),
+    },
+  }).select('+passwordResetToken +passwordResetExpires +password');
+};
+
 export default {
   createUser,
   updateUser,
@@ -55,4 +65,5 @@ export default {
   findUserById,
   isUserExists,
   getUser,
+  findByPasswordToken,
 };

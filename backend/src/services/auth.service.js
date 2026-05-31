@@ -12,6 +12,7 @@ import generateCode from '../utils/generate.Code.js';
 import verifyEmailTemplate from '../emails/templates/verify.email.js';
 import User from '../models/user.model.js';
 import emailVerifiedTemplate from '../emails/templates/emailVerified.email.js';
+import { passwordResetEmailTemplate } from '../emails/templates/forgot.Password.email.js';
 
 /**
  * Phase 1
@@ -328,6 +329,84 @@ const verifyEmail = async ({ otp, email, userId }) => {
   };
 };
 
+const forgotPasswordToken = async ({ email }) => {
+  if (!email) throw new ApiError(404, 'Email is required to forgot password');
+
+  // find user
+  const user = await userRepo.findUserByEmail(email);
+
+  /*
+   * add cooldown time and limting
+   * add limter to send email
+   */
+
+  // if user not found
+  if (!user) throw new ApiError(404, 'USer not found with this email');
+
+  // genereate tokens
+
+  const token = generateCode.generateRandomToken();
+
+  const hasedToken = generateCode.generateHash(token);
+
+  await userRepo.updateUser(user._id, {
+    passwordResetToken: hasedToken,
+    passwordResetExpires: Date.now() + 5 * 60 * 1000,
+  });
+
+  // send email
+  const { subject, html } = passwordResetEmailTemplate({
+    fullName: user.fullName,
+    resetPasswordLink: `https//localhost:5173/forgot-password?${token}`,
+    appName: 'Authenticate App',
+    expiryTime: '5 minutes',
+  });
+
+  sendEmail({
+    to: user.email,
+    subject,
+    html,
+  }).catch((err) => {
+    throw new ApiError(400, 'Something went wrong on email send');
+  });
+
+  return {
+    success: true,
+    message: `Password reset link sent on ${user?.email} at ${new Date()}`,
+    token,
+  };
+};
+
+const resetPasswordByEmailLink = async ({ email, token, password }) => {
+  if (!token || !email || !password) throw new ApiError(400, 'Required credentials');
+
+  // hased Token
+  const hasedToken = generateCode.generateHash(token);
+
+  //find by email, hasedToken and expiryAT
+  const user = await userRepo.findByPasswordToken(email, hasedToken);
+
+  if (!user) throw new ApiError(400, 'Invalid Token or expiry password reset link');
+
+  // chech if password same
+  if (await user.comparePassword(password))
+    throw new ApiError(403, 'Please set a different password from the old one');
+
+  // update user data
+  user.password = password;
+  user.passwordChangedAt = new Date();
+
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+
+  await user.save();
+
+  return {
+    success: true,
+    message: `${user.fullName} has password changed at ${new Date()}`,
+  };
+};
+
 export default {
   register,
   login,
@@ -338,4 +417,8 @@ export default {
   // phase 2 => verify email
   sendEmailVarification,
   verifyEmail,
+
+  // phase 3 => recovery password
+  forgotPasswordToken,
+  resetPasswordByEmailLink,
 };

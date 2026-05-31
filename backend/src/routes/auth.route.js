@@ -56,4 +56,18 @@ router.route('/send-verification-email').post(protect, authController.sendVerify
 
 router.route('/verify-email').post(protect, authController.verifyEmail);
 
+/**
+ * /api/v1/auth/forgot-password
+ * Reset password using email link
+ */
+
+router.route('/forgot-password').post(authController.forgotPassword);
+
+/**
+ * /api/v1/auth/reset-password:token
+ * Reset password
+ */
+
+router.route('/reset-password').post(authController.resetPassword);
+
 export default router;
