@@ -25,6 +25,10 @@ const isUserExists = (email, username) => {
   });
 };
 
+const findByGoogleId = (googleId) => {
+  return User.findOne({ googleId });
+};
+
 const getUser = (identifier) => {
   return User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
@@ -66,4 +70,5 @@ export default {
   isUserExists,
   getUser,
   findByPasswordToken,
+  findByGoogleId,
 };

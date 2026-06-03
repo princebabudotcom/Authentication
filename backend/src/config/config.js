@@ -16,6 +16,10 @@ const config = {
 
   GOOGLE_APP_PASSWORD: process.env.GOOGLE_APP_PASSWORD,
   EMAIL_USER: process.env.EMAIL_USER,
+
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_CLIENT_URL: process.env.GOOGLE_CLIENT_URL,
 };
 
 export default config;

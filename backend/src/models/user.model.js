@@ -36,7 +36,12 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [
+        function () {
+          return !this.googleId && !this.githubId;
+        },
+        'Password is required',
+      ],
       minlength: 8,
       select: false,
     },
@@ -55,6 +60,22 @@ const userSchema = new mongoose.Schema(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+
+    googleId: {
+      type: String,
+      select: false,
+      required: function () {
+        return !this.githubId;
+      },
+    },
+
+    githubId: {
+      type: String,
+      select: false,
+      required: function () {
+        return !this.googleId;
+      },
     },
 
     refreshToken: {

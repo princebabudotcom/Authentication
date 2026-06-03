@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import morganLogger from './config/morgan.logger.js';
 import cors from 'cors';
+import passport from './config/passport.js';
 
 const httpServer = http.createServer(app);
 
@@ -16,6 +17,7 @@ app.use(cookieParser()); // for parsing cookies
 app.use(helmet()); // for setting various HTTP headers for security
 app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
+app.use(passport.initialize()); // initialize passport for authentication
 
 // routes
 import authRoute from './routes/auth.route.js';

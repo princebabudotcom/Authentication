@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authController from '../controllers/auth.controller.js';
 import protect from '../middlewares/auth.middleware.js';
+import passport from 'passport';
 
 const router = Router();
 
@@ -69,5 +70,26 @@ router.route('/forgot-password').post(authController.forgotPassword);
  */
 
 router.route('/reset-password').post(authController.resetPassword);
+
+/**
+ * /api/v1/auth/google
+ */
+
+router.get(
+  '/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+  })
+);
+
+/*
+ * /api/v1/auth/google/callback
+ */
+
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false }),
+  authController.googleCallback
+);
 
 export default router;

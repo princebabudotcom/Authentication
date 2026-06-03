@@ -230,6 +230,32 @@ const resetPassword = asyncHandler(async (req, res) => {
   throw new ApiError(400, 'Invalid reset password type');
 });
 
+// google callback handler
+
+const googleCallback = asyncHandler(async (req, res) => {
+  const { accessToken, refreshToken, user } = await authService.googleCallback(req);
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  res.status(200).json({
+    success: true,
+    message: 'Google authentication successful',
+    user,
+  });
+});
+
 export default {
   register,
   login,
@@ -244,4 +270,7 @@ export default {
   // phase 3 => recover password
   forgotPassword,
   resetPassword,
+
+  // google callback
+  googleCallback,
 };

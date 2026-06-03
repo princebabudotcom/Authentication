@@ -407,6 +407,25 @@ const resetPasswordByEmailLink = async ({ email, token, password }) => {
   };
 };
 
+const googleCallback = async (req) => {
+  const user = req.user;
+
+  const refreshToken = user.generateRefreshToken();
+
+  const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
+
+  const accessToken = user.generateAccessToken();
+
+  // create session with hashed refresh token to prevent token theft from database
+  await sessionRepo.createSession(user._id, hashedRefreshToken, req.ip, req.headers['user-agent']);
+
+  return {
+    accessToken,
+    refreshToken,
+    user: user.toJSON(),
+  };
+};
+
 export default {
   register,
   login,
@@ -421,4 +440,6 @@ export default {
   // phase 3 => recovery password
   forgotPasswordToken,
   resetPasswordByEmailLink,
+
+  googleCallback,
 };
