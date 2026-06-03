@@ -343,6 +343,13 @@ const forgotPasswordToken = async ({ email }) => {
   // if user not found
   if (!user) throw new ApiError(404, 'USer not found with this email');
 
+  // cooldown timer
+  if (
+    user.passwordResetRequestAt &&
+    Date.now() - new Date(user.passwordResetRequestAt).getTime() < 2 * 60 * 1000
+  )
+    throw new ApiError(429, 'Please wait 2 minutes before requesting another password reset');
+
   // genereate tokens
 
   const token = generateCode.generateRandomToken();
@@ -352,6 +359,7 @@ const forgotPasswordToken = async ({ email }) => {
   await userRepo.updateUser(user._id, {
     passwordResetToken: hasedToken,
     passwordResetExpires: Date.now() + 5 * 60 * 1000,
+    passwordResetRequestAt: new Date(),
   });
 
   // send email
@@ -386,7 +394,14 @@ const resetPasswordByEmailLink = async ({ email, token, password }) => {
   //find by email, hasedToken and expiryAT
   const user = await userRepo.findByPasswordToken(email, hasedToken);
 
+  // is user not found
   if (!user) throw new ApiError(400, 'Invalid Token or expiry password reset link');
+
+  if (!user.password)
+    throw new ApiError(
+      400,
+      'Please set password for this account because it is register with google or github'
+    );
 
   // chech if password same
   if (await user.comparePassword(password))
@@ -398,6 +413,7 @@ const resetPasswordByEmailLink = async ({ email, token, password }) => {
 
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
+  user.passwordResetRequestAt = undefined;
 
   await user.save();
 

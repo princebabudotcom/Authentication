@@ -7,10 +7,7 @@ const createUser = (userData) => {
 const findUserByEmail = async (email) => {
   return User.findOne({ email })
     .select(
-      '+emailVerificationSentAt ' +
-        '+emailVerificationAttempts ' +
-        '+emailVerificationToken ' +
-        '+emailVerificationExpires'
+      '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +passwordResetRequestAt'
     )
     .lean();
 };

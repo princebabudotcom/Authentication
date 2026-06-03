@@ -66,7 +66,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
       required: function () {
-        return !this.githubId;
+        return !this.githubId && !this.password;
       },
     },
 
@@ -74,7 +74,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
       required: function () {
-        return !this.googleId;
+        return !this.googleId && !this.password;
       },
     },
 
@@ -93,6 +93,10 @@ const userSchema = new mongoose.Schema(
     },
 
     passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+    passwordResetRequestAt: {
       type: Date,
       select: false,
     },
