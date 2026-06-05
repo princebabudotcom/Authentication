@@ -1,7 +1,8 @@
 import { Navigate } from "react-router-dom";
+import useAuth from "../context/auth/UseAuth";
 
 const publicRoute = ({ children }) => {
-  const isAuthenticated = false; // Replace with actual authentication logic
+  const { isAuthenticated, loading } = useAuth(); // Replace with actual authentication logic
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;

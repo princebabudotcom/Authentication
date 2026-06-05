@@ -8,6 +8,7 @@ import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import Home from "../pages/Home/Home";
+import VerfiyEmail from "../pages/user/VerfiyEmail";
 
 const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <Home />,
+      },
+      {
+        path: "/user/verify-email",
+        element: <VerfiyEmail />,
       },
     ],
   },

@@ -91,6 +91,7 @@ export default function LoginPage() {
         <div className="space-y-2.5 mb-5">
           {/* Google */}
           <button
+            onClick={AuthApi.googleAuth}
             type="button"
             className="w-full h-11 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 transition rounded-xl flex items-center justify-center gap-3 text-sm font-medium"
           >

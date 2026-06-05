@@ -1,199 +1,122 @@
-import React from "react";
-import {
-  ArrowLeft,
-  Bell,
-  Settings,
-  Link as LinkIcon,
-  MapPin,
-  Calendar,
-  Edit,
-  Grid3X3,
-  Bookmark,
-  Heart,
-  MessageSquare,
-  Share2,
-} from "lucide-react";
+import { useState } from "react";
+import useAuth from "../../context/auth/UseAuth";
+import { Link } from "react-router-dom";
 
-export default function ProfilePage() {
-  const posts = [
-    {
-      id: 1,
-      content:
-        "Building a production-ready authentication system with MERN stack and modern UI.",
-      likes: "1.2k",
-      comments: "184",
-    },
-    {
-      id: 2,
-      content:
-        "Dark minimal UI makes applications look cleaner and more professional.",
-      likes: "860",
-      comments: "92",
-    },
-  ];
+export default function HomePage() {
+  const { logout, user } = useAuth();
+  const [loader, setloader] = useState(false);
+
+  const logoutUser = async () => {
+    try {
+      setloader(true);
+      await logout();
+    } catch (error) {
+      setloader(false);
+    } finally {
+      setloader(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-900 bg-black/90 backdrop-blur">
-        <div className="h-14 px-4 flex items-center justify-between max-w-5xl mx-auto">
-          {/* Left */}
-          <div className="flex items-center gap-3">
-            <button className="h-10 w-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center hover:bg-zinc-800 transition">
-              <ArrowLeft className="w-4 h-4" />
-            </button>
+    <div className="min-h-screen bg-zinc-950 text-white">
+      {/* Navbar */}
+      <nav className="border-b border-zinc-800">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between">
+          <h1 className="font-bold text-xl">AuthApp</h1>
 
-            <div>
-              <h1 className="text-sm font-semibold">Prince Babu</h1>
+          <div className="flex gap-6 text-zinc-400">
+            <a href="/">Home</a>
+            <a href="/profile">Profile</a>
+            <a href="/settings">Settings</a>
+          </div>
+        </div>
+      </nav>
 
-              <p className="text-xs text-zinc-500">24 Posts</p>
+      {/* Content */}
+      <div className="max-w-6xl mx-auto p-6 grid md:grid-cols-3 gap-6">
+        {/* User Card */}
+        <div className="bg-zinc-900 rounded-xl p-6 border border-zinc-800">
+          <div className="w-16 h-16 rounded-full bg-zinc-700 flex items-center justify-center text-2xl font-bold">
+            {user?.avatar ? (
+              <img
+                className="h-full w-full object-cover rounded-full"
+                src={user?.avatar}
+              />
+            ) : (
+              <div>{user?.fullName[0]}</div>
+            )}
+          </div>
+
+          <h2 className="mt-4 text-xl font-semibold">{user?.fullName}</h2>
+
+          <p className="text-zinc-400">{user?.email}</p>
+
+          <div className="mt-6 space-y-2 text-sm">
+            <p>Role: {user?.role}</p>
+            <p>Joined: {user?.joined}</p>
+          </div>
+
+          <button
+            onClick={logoutUser}
+            className="mt-6 w-full bg-red-600 hover:bg-red-700 py-2 rounded-lg"
+          >
+            {loader ? <div>Logout....</div> : <div>Logout</div>}
+          </button>
+        </div>
+
+        {/* Main Section */}
+        <div className="md:col-span-2 space-y-6">
+          <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800">
+            <h2 className="text-2xl font-bold">Welcome Back 👋</h2>
+            <p className="text-zinc-400 mt-2">
+              You are successfully logged in.
+            </p>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800">
+            <h3 className="font-semibold mb-4">Quick Actions</h3>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <button className="bg-zinc-800 p-3 rounded-lg">
+                Edit Profile
+              </button>
+
+              <button className="bg-zinc-800 p-3 rounded-lg">
+                Change Password
+              </button>
+
+              <button className="bg-zinc-800 p-3 rounded-lg">
+                Security Settings
+              </button>
+
+              <button className="bg-zinc-800 p-3 rounded-lg">
+                Notifications
+              </button>
+
+              {!user?.isEmailVerified && (
+                <Link
+                  to={`/user/verify-email`}
+                  className="bg-zinc-800 p-3 rounded-lg text-center"
+                >
+                  Verify Email
+                </Link>
+              )}
             </div>
           </div>
 
-          {/* Right */}
-          <div className="flex items-center gap-2">
-            <button className="h-10 w-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center hover:bg-zinc-800 transition">
-              <Bell className="w-4 h-4" />
-            </button>
+          {/* Activity */}
+          <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800">
+            <h3 className="font-semibold mb-4">Recent Activity</h3>
 
-            <button className="h-10 w-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center hover:bg-zinc-800 transition">
-              <Settings className="w-4 h-4" />
-            </button>
+            <ul className="space-y-3 text-zinc-400">
+              <li>✅ Login successful</li>
+              <li>🔐 Password changed</li>
+              <li>👤 Profile updated</li>
+            </ul>
           </div>
         </div>
-      </header>
-
-      {/* Main */}
-      <main className="max-w-5xl mx-auto">
-        {/* Cover */}
-        <div className="h-40 sm:h-52 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border-b border-zinc-900 relative">
-          {/* Avatar */}
-          <div className="absolute -bottom-14 left-4">
-            <div className="h-28 w-28 rounded-[28px] bg-zinc-800 border-4 border-black flex items-center justify-center text-4xl font-bold">
-              P
-            </div>
-          </div>
-        </div>
-
-        {/* Profile Content */}
-        <div className="px-4 pt-16 pb-28">
-          {/* Top Info */}
-          <div className="flex items-start justify-between gap-4">
-            {/* User Info */}
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">
-                Prince Babu
-              </h2>
-
-              <p className="text-zinc-500 text-sm mt-1">@princebabu</p>
-
-              <p className="text-sm text-zinc-300 leading-relaxed mt-4 max-w-xl">
-                MERN Stack Developer focused on building scalable
-                production-ready web applications and modern UI systems.
-              </p>
-
-              {/* Meta */}
-              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-zinc-500">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  India
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <LinkIcon className="w-4 h-4" />
-                  gradebuilds.in
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Joined May 2026
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="flex items-center gap-6 mt-5">
-                <div>
-                  <span className="font-semibold text-white">12.4k</span>{" "}
-                  <span className="text-zinc-500 text-sm">Followers</span>
-                </div>
-
-                <div>
-                  <span className="font-semibold text-white">248</span>{" "}
-                  <span className="text-zinc-500 text-sm">Following</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Edit */}
-            <button className="h-11 px-5 rounded-xl bg-white text-black text-sm font-medium hover:opacity-90 transition flex items-center gap-2">
-              <Edit className="w-4 h-4" />
-              Edit
-            </button>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex items-center gap-2 mt-8 overflow-x-auto">
-            <button className="h-11 px-5 rounded-xl bg-white text-black text-sm font-medium flex items-center gap-2 whitespace-nowrap">
-              <Grid3X3 className="w-4 h-4" />
-              Posts
-            </button>
-
-            <button className="h-11 px-5 rounded-xl bg-zinc-900 border border-zinc-800 text-sm font-medium text-zinc-300 hover:bg-zinc-800 transition flex items-center gap-2 whitespace-nowrap">
-              <Bookmark className="w-4 h-4" />
-              Saved
-            </button>
-          </div>
-
-          {/* Posts */}
-          <div className="space-y-4 mt-6">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="rounded-3xl border border-zinc-900 bg-zinc-950 p-5"
-              >
-                {/* Post Top */}
-                <div className="flex items-start gap-3">
-                  {/* Avatar */}
-                  <div className="h-11 w-11 rounded-2xl bg-zinc-800 flex items-center justify-center font-semibold">
-                    P
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">Prince Babu</h3>
-
-                      <span className="text-sm text-zinc-500">@princebabu</span>
-                    </div>
-
-                    <p className="text-sm text-zinc-300 leading-relaxed mt-3">
-                      {post.content}
-                    </p>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-6 mt-5 text-zinc-500">
-                      <button className="flex items-center gap-2 hover:text-white transition text-sm">
-                        <Heart className="w-4 h-4" />
-                        {post.likes}
-                      </button>
-
-                      <button className="flex items-center gap-2 hover:text-white transition text-sm">
-                        <MessageSquare className="w-4 h-4" />
-                        {post.comments}
-                      </button>
-
-                      <button className="flex items-center gap-2 hover:text-white transition text-sm">
-                        <Share2 className="w-4 h-4" />
-                        Share
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

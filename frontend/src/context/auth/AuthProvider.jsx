@@ -32,12 +32,10 @@ const AuthProvider = ({ children }) => {
     getUser();
   }, []);
 
-  console.log(user?.fullName);
-
   // Logout user
   const logout = async () => {
     try {
-      await instance.post("/auth/logout");
+      await instance.get("/auth/logout");
     } catch (error) {
       console.log(error);
     } finally {
