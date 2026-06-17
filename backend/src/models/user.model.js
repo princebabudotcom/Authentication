@@ -47,8 +47,14 @@ const userSchema = new mongoose.Schema(
     },
 
     avatar: {
-      type: String,
-      default: '',
+      url: {
+        type: String,
+        default: '',
+      },
+      fileId: {
+        type: String,
+        default: '',
+      },
     },
 
     role: {

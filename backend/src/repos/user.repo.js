@@ -59,6 +59,10 @@ const findByPasswordToken = (email, hashedToken) => {
   }).select('+passwordResetToken +passwordResetExpires +password');
 };
 
+const findUserByUsername = (username) => {
+  return User.findOne({ username });
+};
+
 export default {
   createUser,
   updateUser,
@@ -68,4 +72,5 @@ export default {
   getUser,
   findByPasswordToken,
   findByGoogleId,
+  findUserByUsername,
 };
