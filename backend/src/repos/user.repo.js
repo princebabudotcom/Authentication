@@ -7,13 +7,13 @@ const createUser = (userData) => {
 const findUserByEmail = async (email) => {
   return User.findOne({ email })
     .select(
-      '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +passwordResetRequestAt'
+      '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +passwordResetRequestAt +isDeleted'
     )
     .lean();
 };
 
 const findUserById = (id) => {
-  return User.findById(id);
+  return User.findById(id).select('+isDeleted +password');
 };
 
 const isUserExists = (email, username) => {
@@ -63,6 +63,18 @@ const findUserByUsername = (username) => {
   return User.findOne({ username });
 };
 
+const checkEmailToken = (email, otp) => {
+  return User.findOne({
+    email,
+    emailVerificationToken: otp,
+    emailVerificationExpires: {
+      $gte: Date.now(),
+    },
+  }).select(
+    '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +isDeleted +deletedAt'
+  );
+};
+
 export default {
   createUser,
   updateUser,
@@ -73,4 +85,5 @@ export default {
   findByPasswordToken,
   findByGoogleId,
   findUserByUsername,
+  checkEmailToken,
 };

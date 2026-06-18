@@ -40,10 +40,11 @@ const register = async (userData, ip, agent) => {
 
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-  const accessToken = user.generateAccessToken();
-
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
-  await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+  const session = await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+
+  // create accesstoken
+  const accessToken = user.generateAccessToken(session._id);
 
   // send email user is register successfully
   sendEmail({
@@ -101,7 +102,7 @@ const login = async (identifier, password, ip, agent) => {
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
 
-  await Promise.all([
+  const [session] = await Promise.all([
     // create session with hashed refresh token to prevent token theft from database
     sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent),
     // Reset login attempts and lock status on successful login
@@ -111,6 +112,8 @@ const login = async (identifier, password, ip, agent) => {
       loginAttempts: 0, // Reset login attempts on successful login
     }),
   ]);
+
+  const accessToken = user.generateAccessToken(session._id);
 
   // sending login alert email to user user .catch for for send
   sendEmail({
@@ -126,8 +129,6 @@ const login = async (identifier, password, ip, agent) => {
   }).catch((error) => {
     logger.error('Failed to send login alert email:', error);
   });
-
-  const accessToken = user.generateAccessToken();
 
   const userJson = user.toJSON();
 
@@ -172,7 +173,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
   if (!user) throw new ApiError(404, 'User not found');
 
   // create new access token and refresh token
-  const newAccessToken = user.generateAccessToken();
+  const newAccessToken = user.generateAccessToken(session._id);
   const newRefreshToken = user.generateRefreshToken();
 
   // hash the new refresh token and update session with new hash, ip, agent, and expiration

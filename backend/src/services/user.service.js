@@ -1,8 +1,17 @@
+import { email } from 'zod';
 import cloudinary from '../config/cloudinary.js';
 import uploadFile from '../config/cloudinary.js';
 import logger from '../config/winston.logger.js';
+import {
+  accountDeletedTemplate,
+  deleteAccountOtpTemplate,
+} from '../emails/templates/deleteAccount.email.js';
 import userRepo from '../repos/user.repo.js';
 import ApiError from '../utils/apiError.js';
+import generateCode from '../utils/generate.Code.js';
+import sendEmail from '../utils/sendEmail.js';
+import sessionRepo from '../repos/session.repo.js';
+import { passwordChangedEmailTemplate } from '../emails/templates/forgot.Password.email.js';
 
 const getMe = async (userId) => {
   const user = await userRepo.findUserById(userId);
@@ -102,8 +111,148 @@ const updateAvatar = async (userId, file) => {
   };
 };
 
+const chnageEmail = async (userId, email) => {};
+
+const OTP_RESEND_COOLDOWN_MS = 2 * 60 * 1000;
+const OTP_EXPIRY_MS = 5 * 60 * 1000;
+const MAX_RESEND_ATTEMPTS = 5;
+const ATTEMPT_WINDOW_MS = 60 * 60 * 1000;
+
+const deleteAccountSendCode = async (email) => {
+  const user = await userRepo.findUserByEmail(email);
+  if (!user) throw new ApiError(404, 'User not found');
+
+  if (user.isDeleted) throw new ApiError(400, 'Account already deleted');
+
+  const sentAt = user.emailVerificationSentAt
+    ? new Date(user.emailVerificationSentAt).getTime()
+    : null;
+
+  if (sentAt && Date.now() - sentAt < OTP_RESEND_COOLDOWN_MS) {
+    throw new ApiError(429, 'Please wait 2 minutes before requesting another OTP');
+  }
+
+  const attemptsExpired = !sentAt || Date.now() - sentAt > ATTEMPT_WINDOW_MS;
+  if (!attemptsExpired && user.emailVerificationAttempts >= MAX_RESEND_ATTEMPTS) {
+    throw new ApiError(429, 'Maximum resend attempts exceeded, try again later');
+  }
+
+  const otp = generateCode.generateOTP();
+  const otpHash = generateCode.generateHash(otp);
+
+  await userRepo.updateUser(user._id, {
+    $set: {
+      emailVerificationToken: otpHash,
+      emailVerificationExpires: new Date(Date.now() + OTP_EXPIRY_MS),
+      emailVerificationSentAt: new Date(),
+    },
+    $inc: { emailVerificationAttempts: 1 },
+  });
+
+  const { html, subject } = deleteAccountOtpTemplate(user.fullName, otp);
+
+  sendEmail({ to: user.email, html, subject }).catch((err) => {
+    logger.error('Failed to send delete account OTP email', err);
+  });
+
+  return {
+    success: true,
+    message: `${user.fullName}, check your email to delete your account.`,
+  };
+};
+
+const deleteAccountVerifyCode = async (email, otp) => {
+  if (!otp || !email) throw new ApiError(400, 'Email and OTP are required');
+
+  const otpHash = generateCode.generateHash(otp);
+  const user = await userRepo.checkEmailToken(email, otpHash);
+  if (!user) throw new ApiError(400, 'OTP expired or invalid');
+
+  await userRepo.updateUser(user._id, {
+    $set: {
+      isDeleted: true,
+      isActive: false,
+      deletedAt: new Date(),
+      emailVerificationAttempts: 0,
+    },
+    $unset: {
+      emailVerificationSentAt: 1,
+      emailVerificationToken: 1,
+      emailVerificationExpires: 1,
+    },
+  });
+
+  const { html, subject } = accountDeletedTemplate(user.fullName, email, new Date());
+
+  sendEmail({ to: user.email, html, subject }).catch((err) => {
+    logger.error('Failed to send account-deleted confirmation email', err);
+  });
+
+  return {
+    success: true,
+    message: 'Your account has been deleted successfully.',
+  };
+};
+
+const getCurrentSession = async (sessionId) => {
+  if (!sessionId) throw new ApiError(404, 'SessionId not found');
+
+  const session = await sessionRepo.findSeesionById(sessionId);
+
+  return session;
+};
+
+const changePassword = async (userId, oldPassword, newPassword, confirmPassword, sessionId) => {
+  if (!oldPassword || !newPassword || !confirmPassword)
+    throw new ApiError(404, 'All fields are required');
+
+  if (confirmPassword !== newPassword)
+    throw new ApiError(400, 'New Password and confirm Password do not match ');
+
+  const user = await userRepo.findUserById(userId);
+  if (!user) throw new ApiError(400, 'User not found');
+
+  // check old password is correct
+  const isMatchPassword = await user.comparePassword(oldPassword);
+  if (!isMatchPassword) throw new ApiError(401, 'Current Password is incorrect');
+
+  // check old or new password
+  const isSamepassword = await user.comparePassword(newPassword);
+  if (isSamepassword) throw new ApiError(400, 'New password must be different from Old Password');
+
+  //update user
+  user.password = newPassword;
+  user.passwordChangedAt = new Date();
+
+  await user.save(); // save user
+  user.password = undefined;
+
+  // delete all sessions except self
+  await sessionRepo.deleteAllSessions(sessionId, userId);
+
+  // send mail after change password
+  const { html, subject } = passwordChangedEmailTemplate(user.fullName);
+  sendEmail({
+    html,
+    subject,
+    to: user?.email,
+  }).catch((err) => {
+    logger.error('Error on sending change password email', err);
+  });
+
+  return {
+    success: true,
+    message: `${user.fullName} your account password changed successfully`,
+  };
+};
+
 export default {
   getMe,
   updateProfile,
   updateAvatar,
+  chnageEmail,
+  deleteAccountSendCode,
+  deleteAccountVerifyCode,
+  getCurrentSession,
+  changePassword,
 };

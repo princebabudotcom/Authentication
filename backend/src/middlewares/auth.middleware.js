@@ -1,5 +1,7 @@
 import config from '../config/config.js';
+import sessionRepo from '../repos/session.repo.js';
 import authService from '../services/auth.service.js';
+import userService from '../services/user.service.js';
 import ApiError from '../utils/apiError.js';
 import jwt from 'jsonwebtoken';
 
@@ -19,12 +21,25 @@ const protect = async (req, res, next) => {
     const decoded = jwt.verify(token, config.ACCESS_TOKEN);
 
     const user = await authService.getMe(decoded.id);
+    const session = await userService.getCurrentSession(decoded.sessionId);
 
     if (!user) {
       return next(new ApiError(404, 'User not found'));
     }
 
+    if (!session) return next(new ApiError(404, 'Session not found'));
+
+    if (user.isDeleted) {
+      return next(
+        new ApiError(
+          403,
+          'Your account has been deleted. Please contact support if you believe this is a mistake.'
+        )
+      );
+    }
+
     req.user = user;
+    req.session = session;
 
     next();
   } catch (error) {

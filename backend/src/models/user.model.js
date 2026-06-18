@@ -143,6 +143,19 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // soft delete
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      select: false,
+    },
+
+    deletedAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -187,13 +200,14 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 |--------------------------------------------------------------------------
 */
 
-userSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateAccessToken = function (sessionId) {
   return jwt.sign(
     {
       id: this._id,
       role: this.role,
       email: this.email,
       username: this.username,
+      sessionId,
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
