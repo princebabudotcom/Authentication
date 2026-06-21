@@ -13,6 +13,8 @@ import sendEmail from '../utils/sendEmail.js';
 import sessionRepo from '../repos/session.repo.js';
 import { passwordChangedEmailTemplate } from '../emails/templates/forgot.Password.email.js';
 
+import { UAParser } from 'ua-parser-js';
+
 const getMe = async (userId) => {
   const user = await userRepo.findUserById(userId);
 
@@ -246,6 +248,61 @@ const changePassword = async (userId, oldPassword, newPassword, confirmPassword,
   };
 };
 
+// phase 3
+
+const loginHistory = async (userId) => {
+  if (!userId) throw new ApiError(404, 'User id is required');
+
+  const sessions = await sessionRepo.findAllSessions(userId).sort({ createdAt: -1 });
+
+  if (!sessions) throw new ApiError(404, 'No sessions found');
+
+  return {
+    success: true,
+    history: sessions,
+    message: `Login history detected`,
+  };
+};
+
+const logoutDevice = async (userId, sessionId, currentSessionId) => {
+  if (!userId || !sessionId) {
+    throw new ApiError(400, 'UserId and sessionId are required');
+  }
+
+  if (sessionId === currentSessionId.toString()) {
+    throw new ApiError(400, 'Cannot logout current device — use the regular logout instead');
+  }
+
+  const session = await sessionRepo.findSessionById(sessionId);
+  if (!session) throw new ApiError(404, 'Session not found');
+
+  if (session.user.toString() !== userId.toString()) {
+    throw new ApiError(403, 'You are not authorized to log out this device');
+  }
+
+  if (session.isRevoked) {
+    throw new ApiError(400, 'This session is already logged out');
+  }
+
+  await session.revoke('Logged out by user');
+
+  return {
+    success: true,
+    message: 'Device logged out successfully',
+  };
+};
+
+const logoutAllDevice = async (userId, sessionId) => {
+  if (!userId || !sessionId) throw new ApiError(404, 'UserId and SessionId is required');
+
+  await sessionRepo.revokeAllSessions(userId, sessionId);
+
+  return {
+    success: true,
+    message: "All Device's Logout successfully",
+  };
+};
+
 export default {
   getMe,
   updateProfile,
@@ -255,4 +312,7 @@ export default {
   deleteAccountVerifyCode,
   getCurrentSession,
   changePassword,
+  loginHistory,
+  logoutDevice,
+  logoutAllDevice,
 };

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import logger from './winston.logger.js';
+import Session from '../models/session.model.js';
 
 const connectDB = (dburl) => {
   mongoose

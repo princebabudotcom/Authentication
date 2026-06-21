@@ -53,4 +53,34 @@ router.route('/account/verify-code').delete(protect, userController.deleteAccoun
 
 router.route('/account/change-password').patch(protect, userController.changePassword);
 
+/*
+ *  Phase 3 — User Activity System
+ * Login history
+ * Account activity
+ * Recently used devices
+ * User status
+ * Online/offline tracking
+ */
+
+/*
+ * GET /api/v1/users/login-history
+ * Get all Sessions
+ */
+
+router.route('/account/login-history').get(protect, userController.loginHistory);
+
+/*
+ * GET /api/v1/users/account/session:id
+ * Get current sessions
+ */
+
+router.route('/account/sessions/:id').delete(protect, userController.logoutDevice);
+
+/*
+ * GET /api/v1/users/account/logout-all
+ * Revoke all sessions
+ */
+
+router.route('/account/logout-all').patch(protect, userController.logoutAllDevice);
+
 export default router;

@@ -27,7 +27,7 @@ const protect = async (req, res, next) => {
       return next(new ApiError(404, 'User not found'));
     }
 
-    if (!session) return next(new ApiError(404, 'Session not found'));
+    if (!session) return next(new ApiError(401, 'Session has been revoked, please login again'));
 
     if (user.isDeleted) {
       return next(

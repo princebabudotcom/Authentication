@@ -41,7 +41,13 @@ const register = async (userData, ip, agent) => {
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
-  const session = await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+  const session = await sessionRepo.createSession(
+    user._id,
+    hashedRefreshToken,
+    ip,
+    agent,
+    lastActiveAt
+  );
 
   // create accesstoken
   const accessToken = user.generateAccessToken(session._id);
@@ -104,7 +110,7 @@ const login = async (identifier, password, ip, agent) => {
 
   const [session] = await Promise.all([
     // create session with hashed refresh token to prevent token theft from database
-    sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent),
+    sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent, new Date()),
     // Reset login attempts and lock status on successful login
     userRepo.updateUser(user._id, {
       lastlogin: new Date(),
@@ -183,6 +189,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
   session.ipAddress = ip;
   session.userAgent = agent;
   session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend session for another 7 days
+  session.lastActiveAt = new Date();
 
   await session.save();
 

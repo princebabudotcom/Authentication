@@ -90,6 +90,42 @@ const changePassword = asyncHandler(async (req, res) => {
   });
 });
 
+// phase 3
+
+const loginHistory = asyncHandler(async (req, res) => {
+  const { success, history, message } = await userService.loginHistory(req.user._id);
+
+  res.status(200).json({
+    success,
+    history,
+    message,
+  });
+});
+
+const logoutDevice = asyncHandler(async (req, res) => {
+  const sessionId = req.params.id;
+  const { success, message, session } = await userService.logoutDevice(
+    req.user._id,
+    sessionId,
+    req.session._id
+  );
+
+  res.status(200).json({
+    success,
+    message,
+    session,
+  });
+});
+
+const logoutAllDevice = asyncHandler(async (req, res) => {
+  const { success, message } = await userService.logoutAllDevice(req.user._id, req.session._id);
+
+  res.status(200).json({
+    success,
+    message,
+  });
+});
+
 export default {
   getMe,
   updateProfile,
@@ -98,4 +134,7 @@ export default {
   deleteAccountSendCode,
   deleteAccountVerifyCode,
   changePassword,
+  loginHistory,
+  logoutDevice,
+  logoutAllDevice,
 };

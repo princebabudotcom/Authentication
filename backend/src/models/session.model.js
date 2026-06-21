@@ -118,6 +118,13 @@ sessionSchema.index(
   }
 );
 
+// delete after 90 days after
+
+sessionSchema.index(
+  { revokedAt: 1 },
+  { expireAfterSeconds: 30 * 24 * 60 * 60, partialFilterExpression: { isRevoked: true } }
+);
+
 /*
 |--------------------------------------------------------------------------
 | CHECK ACTIVE SESSION
