@@ -55,6 +55,47 @@ const protect = async (req, res, next) => {
   }
 };
 
+export const socketAuth = async (socket, next) => {
+  try {
+    let token;
+    if (socket.handshake.auth?.token) {
+      token = socket.handshake.auth.token;
+    } else if (socket.handshake.headers?.authorization?.startsWith('Bearer ')) {
+      token = socket.handshake.headers.authorization.split(' ')[1];
+    }
+    if (!token) {
+      return next(new Error('Not authorized, no token'));
+    }
+    const decoded = jwt.verify(token, config.ACCESS_TOKEN);
+    const user = await authService.getMe(decoded.id);
+    const session = await userService.getCurrentSession(decoded.sessionId);
+    if (!user) {
+      return next(new Error('User not found'));
+    }
+    if (!session) {
+      return next(new Error('Session has been revoked, please login again'));
+    }
+    if (user.isDeleted) {
+      return next(
+        new Error(
+          'Your account has been deleted. Please contact support if you believe this is a mistake.'
+        )
+      );
+    }
+    socket.user = user;
+    socket.session = session;
+    next();
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return next(new Error('Token expired'));
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      return next(new Error('Invalid token'));
+    }
+    next(error);
+  }
+};
+
 const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

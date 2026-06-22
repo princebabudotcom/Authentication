@@ -19,6 +19,9 @@ app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 app.use(passport.initialize()); // initialize passport for authentication
 
+// connect to socket
+initSocket(httpServer);
+
 // routes
 import authRoute from './routes/auth.route.js';
 import userRoute from './routes/user.route.js';
@@ -44,6 +47,7 @@ app.get('/health', (req, res) => {
 // error handling middleware
 import errorMiddleware from './middlewares/error.middleware.js';
 import corsOptions from './config/cors.js';
+import { initSocket } from './socket/index.js';
 
 app.use(errorMiddleware);
 
