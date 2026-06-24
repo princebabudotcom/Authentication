@@ -9,6 +9,7 @@ import cors from 'cors';
 import passport from './config/passport.js';
 
 const httpServer = http.createServer(app);
+import { initSocket } from './socket/index.js';
 
 // middleware
 app.use(express.json()); // for parsing application/json
@@ -47,7 +48,6 @@ app.get('/health', (req, res) => {
 // error handling middleware
 import errorMiddleware from './middlewares/error.middleware.js';
 import corsOptions from './config/cors.js';
-import { initSocket } from './socket/index.js';
 
 app.use(errorMiddleware);
 

@@ -4,6 +4,7 @@ import authService from '../services/auth.service.js';
 import userService from '../services/user.service.js';
 import ApiError from '../utils/apiError.js';
 import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 
 const protect = async (req, res, next) => {
   try {
@@ -58,8 +59,8 @@ const protect = async (req, res, next) => {
 export const socketAuth = async (socket, next) => {
   try {
     let token;
-    if (socket.handshake.auth?.token) {
-      token = socket.handshake.auth.token;
+    if (socket.handshake?.headers?.cookie) {
+      token = cookie.parse(socket.handshake.headers?.cookie).accessToken || ' ';
     } else if (socket.handshake.headers?.authorization?.startsWith('Bearer ')) {
       token = socket.handshake.headers.authorization.split(' ')[1];
     }
