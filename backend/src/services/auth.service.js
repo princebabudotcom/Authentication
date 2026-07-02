@@ -41,13 +41,7 @@ const register = async (userData, ip, agent) => {
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
-  const session = await sessionRepo.createSession(
-    user._id,
-    hashedRefreshToken,
-    ip,
-    agent,
-    lastActiveAt
-  );
+  const session = await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
 
   // create accesstoken
   const accessToken = user.generateAccessToken(session._id);
@@ -159,18 +153,36 @@ const refreshToken = async (refreshToken, ip, agent) => {
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
 
+  // console.log(decoded);
+
   // Hash the provided refresh token to compare with stored hash
   const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
   // find session by refresh token hash
   const session = await sessionRepo.findSession(refreshTokenHash);
 
-  // if session not found or expired, throw error
-  if (!session) throw new ApiError(401, 'Refresh token is invalid or expired');
+  // console.log(refreshTokenHash);
+  console.log(session);
+  if (!session || session.isRevoked) {
+    throw new ApiError(401, 'Session is no longer valid, please log in again');
+  }
+
+  if (session.expiresAt.getTime() < Date.now()) {
+    await session.revoke('Session is expired');
+    throw new ApiError(401, 'Session expired, please log in again');
+  }
 
   // if session user id does not match decoded token user id or session is revoked, throw error
-  if (!decoded || !decoded.id || decoded.id !== session.user.toString())
+  if (!decoded || !decoded.id || decoded.id !== session.user.toString()) {
+    await sessionRepo.revokefamily(decoded.id);
     throw new ApiError(401, 'Refresh token does not match session');
+  }
+
+  // reuse-detection
+  if (session.refreshToken !== refreshTokenHash) {
+    await sessionRepo.revokefamily(decoded.id);
+    throw new ApiError(401, 'Refresh token is invalid or expired');
+  }
 
   // find user by session user id
   const user = await userRepo.findUserById(session.user);
@@ -185,13 +197,18 @@ const refreshToken = async (refreshToken, ip, agent) => {
   // hash the new refresh token and update session with new hash, ip, agent, and expiration
   const newRefreshTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
 
-  session.refreshToken = newRefreshTokenHash;
-  session.ipAddress = ip;
-  session.userAgent = agent;
-  session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend session for another 7 days
-  session.lastActiveAt = new Date();
+  const updated = await sessionRepo.rotate({
+    newhash: newRefreshTokenHash,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    ip,
+    userAgent: agent,
+    exceptedhash: refreshTokenHash,
+  });
 
-  await session.save();
+  if (!updated) {
+    await sessionRepo.revokefamily(decoded.id);
+    throw new ApiError(401, 'Refresh token reuse detected — all sessions revoked');
+  }
 
   // Return the new access token and refresh token
   return {
@@ -438,10 +455,15 @@ const googleCallback = async (req) => {
 
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
-  const accessToken = user.generateAccessToken();
-
   // create session with hashed refresh token to prevent token theft from database
-  await sessionRepo.createSession(user._id, hashedRefreshToken, req.ip, req.headers['user-agent']);
+  const session = await sessionRepo.createSession(
+    user._id,
+    hashedRefreshToken,
+    req.ip,
+    req.headers['user-agent']
+  );
+
+  const accessToken = user.generateAccessToken(session._id);
 
   return {
     accessToken,

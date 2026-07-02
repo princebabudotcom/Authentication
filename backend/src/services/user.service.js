@@ -14,6 +14,7 @@ import sessionRepo from '../repos/session.repo.js';
 import { passwordChangedEmailTemplate } from '../emails/templates/forgot.Password.email.js';
 
 import { UAParser } from 'ua-parser-js';
+import asyncHandler from '../utils/asyncHandler.js';
 
 const getMe = async (userId) => {
   const user = await userRepo.findUserById(userId);
@@ -65,8 +66,10 @@ const updateProfile = async (userData, userId) => {
     }
   });
 
-  await user.save();
-  user.password = undefined;
+  await user.save({
+    validateBeforeSave: false,
+  });
+  // user.password = undefined;
 
   return {
     success: true,
@@ -96,7 +99,9 @@ const updateAvatar = async (userId, file) => {
 
   user.avatar.url = response.url;
   user.avatar.fileId = response.fileId;
-  await user.save();
+  await user.save({
+    validateBeforeSave: false,
+  });
 
   if (oldAvatar?.fileId && oldAvatar?.fileId !== response.fileId) {
     cloudinary.deleteFile(oldAvatar?.fileId).catch((error) => {
@@ -273,7 +278,7 @@ const logoutDevice = async (userId, sessionId, currentSessionId) => {
     throw new ApiError(400, 'Cannot logout current device — use the regular logout instead');
   }
 
-  const session = await sessionRepo.findSessionById(sessionId);
+  const session = await sessionRepo.findSeesionById(sessionId);
   if (!session) throw new ApiError(404, 'Session not found');
 
   if (session.user.toString() !== userId.toString()) {
@@ -303,6 +308,47 @@ const logoutAllDevice = async (userId, sessionId) => {
   };
 };
 
+const setPassword = async (userId, password, confirmPassword) => {
+  if (!userId) throw new ApiError(404, 'Invalid User');
+  if (!password || !confirmPassword)
+    throw new ApiError(404, 'Password and confirm password is required');
+
+  if (password !== confirmPassword)
+    throw new ApiError(400, 'Password must same as Confirm Password');
+
+  const user = await userRepo.findUserById(userId);
+
+  if (!user) throw new ApiError(404, 'User not found ');
+
+  if (user.password) throw new ApiError(403, 'User have a alreay password');
+
+  user.password = password;
+  await user.save();
+
+  return {
+    success: true,
+    message: `${user.fullName} your password set successffuly`,
+  };
+};
+
+const OAuthProviders = async (userId) => {
+  if (!userId) throw new ApiError(404, 'UserId is required');
+
+  const user = await userRepo.findUserById(userId);
+  if (!user) throw new ApiError(404, 'User not found');
+
+  const providers = {
+    hasPassword: !!user?.password,
+    providers: [...(user?.googleId ? ['google'] : []), ...(user?.githubId ? ['github'] : [])],
+  };
+
+  return {
+    success: true,
+    message: 'providers fetch successfully',
+    data: providers,
+  };
+};
+
 export default {
   getMe,
   updateProfile,
@@ -315,4 +361,6 @@ export default {
   loginHistory,
   logoutDevice,
   logoutAllDevice,
+  setPassword,
+  OAuthProviders,
 };

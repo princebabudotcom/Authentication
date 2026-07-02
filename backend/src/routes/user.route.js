@@ -83,4 +83,17 @@ router.route('/account/sessions/:id').delete(protect, userController.logoutDevic
 
 router.route('/account/logout-all').patch(protect, userController.logoutAllDevice);
 
+/*
+ * SetPassword /api/v1/users/account/set-password
+ * OAuth account set password
+ */
+
+router.route('/account/set-password').patch(protect, userController.setPassword);
+
+/*
+ * check providers /api/v1/users/account/set-password
+ * OAuth account providers
+ */
+
+router.route('/account/OAuth-providers').get(protect, userController.OAuthProviders);
 export default router;

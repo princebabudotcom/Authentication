@@ -1,16 +1,12 @@
 import { Navigate } from "react-router-dom";
 import useAuth from "../context/auth/UseAuth";
-import { LucideLoader2 } from "lucide-react";
+import AuthSkeletonLoader from "../components/Loader";
 
 const protectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth(); // Replace with actual authentication logic
 
   if (loading) {
-    return (
-      <div className=" h-screen w-full bg-black text-white flex items-center justify-center">
-        <LucideLoader2 className="animate-spin" size={40} />
-      </div>
-    );
+    return <AuthSkeletonLoader />;
   }
 
   if (!isAuthenticated) {

@@ -21,6 +21,8 @@ const findSession = (refreshTokenHash) => {
   });
 };
 
+const findById = (id) => Session.findById(id);
+
 const findSeesionById = (sessionid) => {
   return Session.findOne({
     isRevoked: false,
@@ -61,6 +63,24 @@ const findAllSessions = (userId) => {
   });
 };
 
+const revokefamily = (UserId) => {
+  return Session.updateMany({ user: UserId }, { isRevoked: true });
+};
+
+const rotate = ({ sessionId, newhash, ip, userAgent, expiresAt, lastActiveAt, exceptedhash }) => {
+  return Session.findOneAndUpdate(
+    { _id: sessionId, refreshToken: exceptedhash, isRevoked: false },
+    {
+      refreshToken: newhash,
+      ipAddress: ip,
+      userAgent: userAgent,
+      expiresAt,
+      lastActiveAt: new Date(),
+    },
+    { new: true }
+  );
+};
+
 export default {
   createSession,
   findSession,
@@ -68,4 +88,7 @@ export default {
   deleteAllSessions,
   findAllSessions,
   revokeAllSessions,
+  revokefamily,
+  rotate,
+  findById,
 };

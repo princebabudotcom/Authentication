@@ -151,6 +151,11 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    isPrivate: {
+      type: Boolean,
+      default: false,
+    },
+
     deletedAt: {
       type: Date,
       select: false,

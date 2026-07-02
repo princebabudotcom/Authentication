@@ -9,6 +9,18 @@ import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import Home from "../pages/Home/Home";
 import VerfiyEmail from "../pages/user/VerfiyEmail";
+// import AccountSettings from "../pages/Home/AccountSettings";
+// import ChangePassword from "../components/ChangePassword";
+import Profile from "../pages/Home/Profile";
+import Sequrity from "../pages/Home/Sequrity";
+import SettingsLayout from "../pages/Home/AccountSettings";
+import SessionsPage from "../pages/settings/Sessions";
+import LoginHistoryPage from "../pages/settings/LoginHistory";
+import BackupCodesPage from "../pages/settings/BackupCodes";
+import NotificationsPage from "../pages/settings/Notifictions";
+import DeleteAccountPage from "../pages/settings/DeleteAccount";
+import ConnectionsPage from "../pages/settings/Connections";
+import Passwords from "../pages/settings/Passwords";
 
 const router = createBrowserRouter([
   {
@@ -48,8 +60,86 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/user/verify-email",
+        path: "user/verify-email",
         element: <VerfiyEmail />,
+      },
+      {
+        path: "settings",
+        element: <SettingsLayout />,
+        children: [
+          {
+            index: true,
+            element: <Profile />,
+          },
+          {
+            path: "profile",
+            element: <Profile />,
+          },
+          {
+            path: "notifications",
+            element: <NotificationsPage />,
+          },
+          {
+            path: "security",
+            element: <Sequrity />,
+          },
+          {
+            path: "password",
+            element: <Passwords />,
+          },
+          {
+            path: "backup-codes",
+            element: <BackupCodesPage />,
+          },
+          {
+            path: "api-keys",
+            element: <div>API Keys Page</div>,
+          },
+          {
+            path: "sessions",
+            element: <SessionsPage />,
+          },
+          {
+            path: "devices",
+            element: <div>Devices Page</div>,
+          },
+          {
+            path: "login-history",
+            element: <LoginHistoryPage />,
+          },
+          {
+            path: "developer",
+            element: <div>Developer Settings</div>,
+          },
+          {
+            path: "github",
+            element: <div>GitHub Integration</div>,
+          },
+          {
+            path: "connections",
+            element: <ConnectionsPage />,
+          },
+          {
+            path: "webhooks",
+            element: <div>Webhooks Page</div>,
+          },
+          {
+            path: "database",
+            element: <div>Database Settings</div>,
+          },
+          {
+            path: "appearance",
+            element: <div>Appearance Settings</div>,
+          },
+          {
+            path: "export",
+            element: <div>Export Data</div>,
+          },
+          {
+            path: "delete-account",
+            element: <DeleteAccountPage />,
+          },
+        ],
       },
     ],
   },

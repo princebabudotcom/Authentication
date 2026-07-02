@@ -5,15 +5,13 @@ const createUser = (userData) => {
 };
 
 const findUserByEmail = async (email) => {
-  return User.findOne({ email })
-    .select(
-      '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +passwordResetRequestAt +isDeleted'
-    )
-    .lean();
+  return User.findOne({ email }).select(
+    '+emailVerificationSentAt +emailVerificationAttempts +emailVerificationToken +emailVerificationExpires +passwordResetRequestAt +isDeleted'
+  );
 };
 
 const findUserById = (id) => {
-  return User.findById(id).select('+isDeleted +password');
+  return User.findById(id).select('+isDeleted +password +googleId +githubId');
 };
 
 const isUserExists = (email, username) => {

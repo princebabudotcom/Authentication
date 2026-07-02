@@ -75,10 +75,10 @@ const deleteAccountVerifyCode = asyncHandler(async (req, res) => {
  */
 
 const changePassword = asyncHandler(async (req, res) => {
-  const { oldPassword, newPassword, confirmPassword } = req.body;
+  const { currentPassword, newPassword, confirmPassword } = req.body;
   const { success, message } = await userService.changePassword(
     req.user._id,
-    oldPassword,
+    currentPassword,
     newPassword,
     confirmPassword,
     req.session._id
@@ -126,6 +126,30 @@ const logoutAllDevice = asyncHandler(async (req, res) => {
   });
 });
 
+const setPassword = asyncHandler(async (req, res) => {
+  const { password, confirmPassword } = req.body;
+  const { success, message } = await userService.setPassword(
+    req.user._id,
+    password,
+    confirmPassword
+  );
+
+  res.status(200).json({
+    success,
+    message,
+  });
+});
+
+const OAuthProviders = asyncHandler(async (req, res) => {
+  const { success, message, data } = await userService.OAuthProviders(req.user._id);
+
+  res.status(200).json({
+    success,
+    message,
+    data,
+  });
+});
+
 export default {
   getMe,
   updateProfile,
@@ -137,4 +161,6 @@ export default {
   loginHistory,
   logoutDevice,
   logoutAllDevice,
+  setPassword,
+  OAuthProviders,
 };
