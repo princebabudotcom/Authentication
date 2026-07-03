@@ -1,158 +1,106 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 
-import PublicLayout from "../App/PublicLayout";
 import ProtectedRoute from "./PrivateRoute";
 import PublicRoute from "./PublicRoute";
-import AppLayout from "../App/AppLayout";
-import Login from "../pages/auth/Login";
-import Register from "../pages/auth/Register";
-import ForgotPassword from "../pages/auth/ForgotPassword";
-import Home from "../pages/Home/Home";
-import VerfiyEmail from "../pages/user/VerfiyEmail";
-// import AccountSettings from "../pages/Home/AccountSettings";
-// import ChangePassword from "../components/ChangePassword";
-import Profile from "../pages/Home/Profile";
-import Sequrity from "../pages/Home/Sequrity";
-import SettingsLayout from "../pages/Home/AccountSettings";
-import SessionsPage from "../pages/settings/Sessions";
-import LoginHistoryPage from "../pages/settings/LoginHistory";
-import BackupCodesPage from "../pages/settings/BackupCodes";
-import NotificationsPage from "../pages/settings/Notifictions";
-import DeleteAccountPage from "../pages/settings/DeleteAccount";
-import ConnectionsPage from "../pages/settings/Connections";
-import Passwords from "../pages/settings/Passwords";
+import PageLoader from "../components/Loader";
+import NotFound from "../pages/Home/PageNotFound";
+
+// ── Layouts ──
+const PublicLayout = lazy(() => import("../App/PublicLayout"));
+const AppLayout = lazy(() => import("../App/AppLayout"));
+const SettingsLayout = lazy(() => import("../pages/Home/AccountSettings"));
+
+// ── Auth pages ──
+const Login = lazy(() => import("../pages/auth/Login"));
+const Register = lazy(() => import("../pages/auth/Register"));
+const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
+const AuthLandingPage = lazy(() => import("../pages/auth/MainPage"));
+
+// ── Main app pages ──
+const Home = lazy(() => import("../pages/Home/Home"));
+const VerfiyEmail = lazy(() => import("../pages/user/VerfiyEmail"));
+const NotificationsPage = lazy(() => import("../pages/Home/Notifications"));
+
+// ── Settings pages ──
+const Profile = lazy(() => import("../pages/Home/Profile"));
+const Sequrity = lazy(() => import("../pages/Home/Sequrity"));
+const Passwords = lazy(() => import("../pages/settings/Passwords"));
+const SessionsPage = lazy(() => import("../pages/settings/Sessions"));
+const LoginHistoryPage = lazy(() => import("../pages/settings/LoginHistory"));
+const BackupCodesPage = lazy(() => import("../pages/settings/BackupCodes"));
+const ConnectionsPage = lazy(() => import("../pages/settings/Connections"));
+const DeleteAccountPage = lazy(() => import("../pages/settings/DeleteAccount"));
+
+// Wraps any lazy element in its own Suspense boundary so each route
+// shows the loader independently while its chunk downloads, instead
+// of one boundary blanking the whole app on every navigation.
+const withSuspense = (Component) => (
+  <Suspense fallback={<PageLoader />}>
+    <Component />
+  </Suspense>
+);
 
 const router = createBrowserRouter([
   {
     path: "/auth",
-    element: (
-      <PublicRoute>
-        <PublicLayout />
-      </PublicRoute>
-    ),
+    element: <PublicRoute>{withSuspense(PublicLayout)}</PublicRoute>,
     children: [
-      {
-        path: "login",
-        element: <Login />,
-      },
-      {
-        path: "register",
-        element: <Register />,
-      },
-      {
-        path: "forgot-password",
-        element: <ForgotPassword />,
-      },
+      { path: "login", element: withSuspense(Login) },
+      { path: "register", element: withSuspense(Register) },
+      { path: "forgot-password", element: withSuspense(ForgotPassword) },
     ],
   },
 
-  // Protected routes can be added here in the future
+  {
+    path: "/landing",
+    element: <PublicRoute>{withSuspense(PublicLayout)}</PublicRoute>,
+    children: [{ index: true, element: withSuspense(AuthLandingPage) }],
+  },
+
+  // ── Main app: AppLayout renders ONCE, wraps only these ──
   {
     path: "/",
-    element: (
-      <ProtectedRoute>
-        <AppLayout />
-      </ProtectedRoute>
-    ),
+    element: <ProtectedRoute>{withSuspense(AppLayout)}</ProtectedRoute>,
     children: [
-      {
-        index: true,
-        element: <Home />,
-      },
-      {
-        path: "user/verify-email",
-        element: <VerfiyEmail />,
-      },
-      {
-        path: "settings",
-        element: <SettingsLayout />,
-        children: [
-          {
-            index: true,
-            element: <Profile />,
-          },
-          {
-            path: "profile",
-            element: <Profile />,
-          },
-          {
-            path: "notifications",
-            element: <NotificationsPage />,
-          },
-          {
-            path: "security",
-            element: <Sequrity />,
-          },
-          {
-            path: "password",
-            element: <Passwords />,
-          },
-          {
-            path: "backup-codes",
-            element: <BackupCodesPage />,
-          },
-          {
-            path: "api-keys",
-            element: <div>API Keys Page</div>,
-          },
-          {
-            path: "sessions",
-            element: <SessionsPage />,
-          },
-          {
-            path: "devices",
-            element: <div>Devices Page</div>,
-          },
-          {
-            path: "login-history",
-            element: <LoginHistoryPage />,
-          },
-          {
-            path: "developer",
-            element: <div>Developer Settings</div>,
-          },
-          {
-            path: "github",
-            element: <div>GitHub Integration</div>,
-          },
-          {
-            path: "connections",
-            element: <ConnectionsPage />,
-          },
-          {
-            path: "webhooks",
-            element: <div>Webhooks Page</div>,
-          },
-          {
-            path: "database",
-            element: <div>Database Settings</div>,
-          },
-          {
-            path: "appearance",
-            element: <div>Appearance Settings</div>,
-          },
-          {
-            path: "export",
-            element: <div>Export Data</div>,
-          },
-          {
-            path: "delete-account",
-            element: <DeleteAccountPage />,
-          },
-        ],
-      },
+      { index: true, element: withSuspense(Home) },
+      { path: "notifications", element: withSuspense(NotificationsPage) },
+      { path: "user/verify-email", element: withSuspense(VerfiyEmail) },
+    ],
+  },
+
+  // ── Settings: a SIBLING protected route, NOT nested inside AppLayout. ──
+  // AppLayout never mounts here, so its sidebar never renders alongside
+  // SettingsLayout's — no overlay, no z-index tricks, no opacity hacks.
+  {
+    path: "/settings",
+    element: <ProtectedRoute>{withSuspense(SettingsLayout)}</ProtectedRoute>,
+    children: [
+      { index: true, element: withSuspense(Profile) },
+      { path: "profile", element: withSuspense(Profile) },
+      { path: "notifications", element: withSuspense(NotificationsPage) },
+      { path: "security", element: withSuspense(Sequrity) },
+      { path: "password", element: withSuspense(Passwords) },
+      { path: "backup-codes", element: withSuspense(BackupCodesPage) },
+      { path: "api-keys", element: <div>API Keys Page</div> },          
+      { path: "sessions", element: withSuspense(SessionsPage) },
+      { path: "devices", element: <div>Devices Page</div> },
+      { path: "login-history", element: withSuspense(LoginHistoryPage) },
+      { path: "developer", element: <div>Developer Settings</div> },
+      { path: "github", element: <div>GitHub Integration</div> },
+      { path: "connections", element: withSuspense(ConnectionsPage) },
+      { path: "webhooks", element: <div>Webhooks Page</div> },
+      { path: "database", element: <div>Database Settings</div> },
+      { path: "appearance", element: <div>Appearance Settings</div> },
+      { path: "export", element: <div>Export Data</div> },
+      { path: "delete-account", element: withSuspense(DeleteAccountPage) },
     ],
   },
 
   // Catch-all route for 404 Not Found
-
   {
     path: "*",
-    element: (
-      <div className="h-screen w-full bg-black text-white text-2xl font-mono flex items-center justify-center">
-        404 Not Found
-      </div>
-    ),
+    element: withSuspense(NotFound),
   },
 ]);
 

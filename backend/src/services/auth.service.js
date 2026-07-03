@@ -13,12 +13,13 @@ import verifyEmailTemplate from '../emails/templates/verify.email.js';
 import User from '../models/user.model.js';
 import emailVerifiedTemplate from '../emails/templates/emailVerified.email.js';
 import { passwordResetEmailTemplate } from '../emails/templates/forgot.Password.email.js';
+import getDeviceInfo from '../utils/deviceInfo.js';
 
 /**
  * Phase 1
  */
 
-const register = async (userData, ip, agent) => {
+const register = async (userData, ip, agent, browser, device, os) => {
   if (!userData.email || !userData.password || !userData.username || !userData.fullName) {
     throw new Error('Missing required fields');
   }
@@ -41,7 +42,16 @@ const register = async (userData, ip, agent) => {
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
   // Create a new session for the user with the hashed refresh token, IP address, and user agent
-  const session = await sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent);
+  const session = await sessionRepo.createSession(
+    user._id,
+    hashedRefreshToken,
+    ip,
+    agent,
+    lastActiveAt,
+    browser,
+    device,
+    os
+  );
 
   // create accesstoken
   const accessToken = user.generateAccessToken(session._id);
@@ -64,7 +74,7 @@ const register = async (userData, ip, agent) => {
   return { accessToken, refreshToken, user: userJson };
 };
 
-const login = async (identifier, password, ip, agent) => {
+const login = async (identifier, password, ip, agent, browser, device, os) => {
   if (!identifier || !password) throw new ApiError(400, 'User credential is required');
 
   // Find the user by email or username
@@ -104,7 +114,16 @@ const login = async (identifier, password, ip, agent) => {
 
   const [session] = await Promise.all([
     // create session with hashed refresh token to prevent token theft from database
-    sessionRepo.createSession(user._id, hashedRefreshToken, ip, agent, new Date()),
+    sessionRepo.createSession(
+      user._id,
+      hashedRefreshToken,
+      ip,
+      agent,
+      new Date(),
+      browser,
+      device,
+      os
+    ),
     // Reset login attempts and lock status on successful login
     userRepo.updateUser(user._id, {
       lastlogin: new Date(),
@@ -140,77 +159,67 @@ const login = async (identifier, password, ip, agent) => {
 };
 
 const refreshToken = async (refreshToken, ip, agent) => {
-  // Check if refresh token is provided
-  if (!refreshToken) throw new ApiError(400, 'Refresh token is required');
+  if (!refreshToken) throw new ApiError(404, 'Refresh token is required');
 
-  // Verify the refresh token and decode it to get the user ID
+  // token payload
   let decoded;
 
   try {
-    // Verify the refresh token using the same secret used to sign it
     decoded = jwt.verify(refreshToken, config.REFRESH_TOKEN);
   } catch (error) {
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
 
-  // console.log(decoded);
+  // hashed refreshToken
+  const refreshTokenHash = generateCode.generateHash(refreshToken);
 
-  // Hash the provided refresh token to compare with stored hash
-  const refreshTokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
-
-  // find session by refresh token hash
   const session = await sessionRepo.findSession(refreshTokenHash);
 
-  // console.log(refreshTokenHash);
-  console.log(session);
-  if (!session || session.isRevoked) {
-    throw new ApiError(401, 'Session is no longer valid, please log in again');
+  // Possible stolen/old refresh token
+  if (!session) {
+    await sessionRepo.revokefamily(decoded.id);
+    throw new ApiError(401, 'Refresh token is invalid');
   }
 
+  if (session.isRevoked) throw new ApiError(401, 'Session has been revoked');
+
+  // if session is expired
   if (session.expiresAt.getTime() < Date.now()) {
     await session.revoke('Session is expired');
-    throw new ApiError(401, 'Session expired, please log in again');
+    throw new ApiError(400, 'Session is expired');
   }
 
   // if session user id does not match decoded token user id or session is revoked, throw error
-  if (!decoded || !decoded.id || decoded.id !== session.user.toString()) {
+  if (session.user.toString() !== decoded.id.toString()) {
     await sessionRepo.revokefamily(decoded.id);
-    throw new ApiError(401, 'Refresh token does not match session');
+    throw new ApiError(401, 'Refresh Token misMatch');
   }
 
-  // reuse-detection
-  if (session.refreshToken !== refreshTokenHash) {
-    await sessionRepo.revokefamily(decoded.id);
-    throw new ApiError(401, 'Refresh token is invalid or expired');
-  }
+  // find user
+  const user = await userRepo.findUserById(decoded.id);
+  if (!user) throw new ApiError(404, 'User not found\n');
 
-  // find user by session user id
-  const user = await userRepo.findUserById(session.user);
-
-  // if user not found, throw error
-  if (!user) throw new ApiError(404, 'User not found');
-
-  // create new access token and refresh token
-  const newAccessToken = user.generateAccessToken(session._id);
+  // Generate New Tokens
   const newRefreshToken = user.generateRefreshToken();
+  const newAccessToken = user.generateAccessToken(session._id);
 
-  // hash the new refresh token and update session with new hash, ip, agent, and expiration
-  const newRefreshTokenHash = crypto.createHash('sha256').update(newRefreshToken).digest('hex');
+  // new token hash
+  const newRefreshTokenHash = generateCode.generateHash(newRefreshToken);
 
   const updated = await sessionRepo.rotate({
+    sessionId: session._id,
     newhash: newRefreshTokenHash,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    ip,
+    ip: ip,
     userAgent: agent,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     exceptedhash: refreshTokenHash,
   });
 
   if (!updated) {
-    await sessionRepo.revokefamily(decoded.id);
-    throw new ApiError(401, 'Refresh token reuse detected — all sessions revoked');
+    throw new ApiError(401, 'Refresh token already used');
   }
 
-  // Return the new access token and refresh token
+  // return tokens
   return {
     accessToken: newAccessToken,
     refreshToken: newRefreshToken,
@@ -225,7 +234,10 @@ const getMe = async (userId) => {
       throw new ApiError(404, 'User not found');
     }
 
-    return user.toJSON();
+    return {
+      message: 'User fetch successfully',
+      ...user.toJSON(),
+    };
   } catch (error) {
     logger.error(`Failed to fetch data ${error}`);
     throw new ApiError(500, 'Failed to retrieve user data' + error);

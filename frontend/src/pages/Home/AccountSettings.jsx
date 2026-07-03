@@ -2,23 +2,13 @@ import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   User,
-  // Bell,
   Shield,
   Lock,
-  // Smartphone,
   Monitor,
-  // KeyRound,
-  // Code2,
-  // Link2,
   History,
-  // Globe,
   Palette,
-  // DatabaseZap,
-  // Download,
-  // FileCode2,
   Trash2,
   ChevronRight,
-  // Database,
   ArrowLeft,
   Menu,
   X,
@@ -28,45 +18,19 @@ const menu = [
   {
     title: "Account",
     items: [
-      {
-        name: "Profile",
-        icon: User,
-        path: "/settings",
-      },
-      {
-        name: "Password",
-        icon: Lock,
-        path: "/settings/password",
-      },
-      {
-        name: "Security",
-        icon: Shield,
-        path: "/settings/security",
-      },
-      {
-        name: "Sessions",
-        icon: Monitor,
-        path: "/settings/sessions",
-      },
-      {
-        name: "Login History",
-        icon: History,
-        path: "/settings/login-history",
-      },
+      { name: "Profile", icon: User, path: "/settings" },
+      { name: "Password", icon: Lock, path: "/settings/password" },
+      { name: "Security", icon: Shield, path: "/settings/security" },
+      { name: "Sessions", icon: Monitor, path: "/settings/sessions" },
+      { name: "Login History", icon: History, path: "/settings/login-history" },
     ],
   },
-
   {
     title: "Preferences",
     items: [
-      {
-        name: "Appearance",
-        icon: Palette,
-        path: "/settings/appearance",
-      },
+      { name: "Appearance", icon: Palette, path: "/settings/appearance" },
     ],
   },
-
   {
     title: "Danger Zone",
     items: [
@@ -80,177 +44,140 @@ const menu = [
   },
 ];
 
+const NavItems = ({ onClose }) => (
+  <nav className="p-3 space-y-5">
+    {menu.map((section, sIdx) => (
+      <div key={sIdx}>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 px-3 mb-1.5">
+          {section.title}
+        </p>
+        <div className="space-y-0.5">
+          {section.items.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={idx}
+                end={item.path === "/settings"}
+                to={item.path}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `group flex items-center justify-between rounded-xl px-3 py-2.5 transition-all ${
+                    isActive
+                      ? "bg-emerald-500 text-black"
+                      : item.danger
+                        ? "text-red-400 hover:bg-red-950/30"
+                        : "text-zinc-400 hover:bg-zinc-900 hover:text-white"
+                  }`
+                }
+              >
+                <div className="flex items-center gap-3">
+                  <Icon size={15} />
+                  <span className="text-sm font-medium">{item.name}</span>
+                </div>
+                <ChevronRight
+                  size={13}
+                  className="opacity-0 group-hover:opacity-50 transition"
+                />
+              </NavLink>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </nav>
+);
+
 export default function SettingsLayout() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   return (
+    /*
+      This layout now renders on its own — a sibling route to AppLayout,
+      not nested inside it (see AppRouter). AppLayout's sidebar never
+      mounts here, so this is simply THE sidebar for /settings/*, fixed
+      to the viewport, full height, with the outlet as the only
+      independently-scrolling region next to it.
+    */
     <div className="min-h-screen bg-black text-white">
-      {/* Mobile Header */}
-
-      <header className="lg:hidden sticky top-0 z-40 flex items-center justify-between h-16 px-4 border-b border-zinc-800 bg-black">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(`/`)}
-            className="w-10 h-10 rounded-lg hover:bg-zinc-900 flex items-center justify-center"
-          >
-            <ArrowLeft size={20} />
-          </button>
-
-          <h1 className="text-lg font-semibold">Settings</h1>
-        </div>
-
-        <button
-          onClick={() => setOpen(true)}
-          className="w-10 h-10 rounded-lg hover:bg-zinc-900 flex items-center justify-center"
-        >
-          <Menu size={22} />
-        </button>
-      </header>
-
-      {/* Overlay */}
-
+      {/* ── Mobile overlay ── */}
       {open && (
         <div
-          onClick={() => setOpen(false)}
           className="fixed inset-0 bg-black/70 z-40 lg:hidden"
+          onClick={() => setOpen(false)}
         />
       )}
 
-      <div className="max-w-7xl mx-auto flex">
-        {/* Desktop Sidebar */}
+      {/* ── Mobile drawer ── */}
+      <aside
+        className={`fixed top-0 left-0 z-50 h-full w-56 bg-zinc-950 border-r border-zinc-800 flex flex-col transform transition-transform duration-300 lg:hidden ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="h-14 flex items-center justify-between px-4 border-b border-zinc-800 shrink-0">
+          <p className="text-sm font-semibold text-white">Settings</p>
+          <button
+            onClick={() => setOpen(false)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:bg-zinc-900 hover:text-white transition"
+          >
+            <X size={16} />
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1">
+          <NavItems onClose={() => setOpen(false)} />
+        </div>
+      </aside>
 
-        <aside className="hidden lg:flex flex-col w-72 h-screen sticky top-0 border-r border-zinc-800 bg-black">
-          <div className="h-16 flex items-center px-6 border-b border-zinc-800">
-            <button
-              onClick={() => navigate(`/`)}
-              className="mr-3 w-9 h-9 rounded-lg hover:bg-zinc-900 flex items-center justify-center"
-            >
-              <ArrowLeft size={20} />
-            </button>
-
-            <div>
-              <h2 className="font-semibold">Settings</h2>
-
-              <p className="text-xs text-zinc-500">Manage Account</p>
-            </div>
+      {/* ── Desktop settings sidebar — fixed, full height, only sidebar on this route ── */}
+      <aside className="hidden lg:flex flex-col w-52 shrink-0 border-r border-zinc-800 bg-zinc-950 fixed top-0 left-0 h-screen overflow-hidden">
+        <div className="shrink-0 h-14 flex items-center gap-2.5 px-4 border-b border-zinc-800">
+          <button
+            onClick={() => navigate("/")}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-500 hover:bg-zinc-800 hover:text-white transition"
+          >
+            <ArrowLeft size={15} />
+          </button>
+          <div>
+            <p className="text-sm font-semibold text-white leading-none">
+              Settings
+            </p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Manage account</p>
           </div>
+        </div>
 
-          <nav className="flex-1 overflow-y-auto p-4 space-y-6">
-            {menu.map((section, id) => (
-              <div key={id}>
-                {/* Section Title */}
+        {/* Scrollable nav (scrolls only if the menu itself is taller than the screen) */}
+        <div className="flex-1 overflow-y-auto">
+          <NavItems onClose={() => {}} />
+        </div>
+      </aside>
 
-                <h3 className="px-3 mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  {section.title}
-                </h3>
-
-                {/* Menu Items */}
-
-                <div className="space-y-1">
-                  {section.items.map((item, id) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <NavLink
-                        end={true}
-                        key={id}
-                        to={item.path}
-                        onClick={() => setOpen(false)}
-                        className={({ isActive }) =>
-                          `group flex items-center justify-between rounded-xl px-4 py-3 transition-all duration-200 ${
-                            isActive
-                              ? "bg-emerald-500 text-black"
-                              : item.danger
-                                ? "text-red-400 hover:bg-red-950/30"
-                                : "text-zinc-300 hover:bg-zinc-900"
-                          }`
-                        }
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon size={18} />
-
-                          <span className="text-sm font-medium">
-                            {item.name}
-                          </span>
-                        </div>
-
-                        <ChevronRight
-                          size={16}
-                          className="opacity-40 group-hover:opacity-100 transition"
-                        />
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Mobile Sidebar */}
-
-        <aside
-          className={`fixed top-0 left-0 z-50 h-full w-72 bg-black border-r border-zinc-800 transform transition-transform duration-300 lg:hidden ${
-            open ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="h-16 px-5 border-b border-zinc-800 flex items-center justify-between">
-            <h2 className="font-semibold">Settings</h2>
-
+      {/* ── Settings content — offset by the fixed sidebar's width, scrolls independently ── */}
+      <div className="flex flex-col min-w-0 min-h-screen bg-black lg:ml-52">
+        {/* Mobile bar */}
+        <div className="lg:hidden shrink-0 flex items-center justify-between h-12 px-4 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setOpen(false)}
-              className="w-10 h-10 rounded-lg hover:bg-zinc-900 flex items-center justify-center"
+              onClick={() => navigate("/")}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-900 transition"
             >
-              <X size={20} />
+              <ArrowLeft size={16} />
             </button>
+            <span className="text-sm font-semibold text-white">Settings</span>
           </div>
+          <button
+            onClick={() => setOpen(true)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-900 transition"
+          >
+            <Menu size={17} />
+          </button>
+        </div>
 
-          <nav className="p-4 space-y-6">
-            {menu.map((section, sIdx) => (
-              <div key={sIdx}>
-                <h3 className="px-3 mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  {section.title}
-                </h3>
-                <div className="space-y-1">
-                  {section.items.map((item, idx) => {
-                    const Icon = item.icon;
-                    return (
-                      <NavLink
-                        key={idx}
-                        to={item.path}
-                        onClick={() => setOpen(false)}
-                        className={({ isActive }) =>
-                          `flex items-center justify-between rounded-xl px-4 py-3 transition ${
-                            isActive
-                              ? "bg-emerald-500 text-black"
-                              : item.danger
-                                ? "text-red-400 hover:bg-red-950/30"
-                                : "hover:bg-zinc-900 text-zinc-300"
-                          }`
-                        }
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon size={18} />
-                          <span className="text-sm">{item.name}</span>
-                        </div>
-                        <ChevronRight size={16} />
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Content */}
-
-        <main className="flex-1 min-h-screen">
-          <div className="p-4 sm:p-6">
+        {/* Independently scrollable outlet */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-5 sm:p-7 max-w-3xl">
             <Outlet />
           </div>
-        </main>
+        </div>
       </div>
     </div>
   );

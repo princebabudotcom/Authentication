@@ -1,6 +1,15 @@
 import Session from '../models/session.model.js';
 
-const createSession = async (userId, refreshToken, ip, agent, lastActiveAt) => {
+const createSession = async (
+  userId,
+  refreshToken,
+  ip,
+  agent,
+  lastActiveAt,
+  browser,
+  device,
+  os
+) => {
   const session = await Session.create({
     user: userId,
     refreshToken,
@@ -8,6 +17,9 @@ const createSession = async (userId, refreshToken, ip, agent, lastActiveAt) => {
     userAgent: agent,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     lastActiveAt: new Date(),
+    browser,
+    device,
+    os,
   });
 
   return session;

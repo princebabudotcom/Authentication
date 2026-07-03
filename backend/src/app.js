@@ -19,6 +19,7 @@ app.use(helmet()); // for setting various HTTP headers for security
 app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 app.use(passport.initialize()); // initialize passport for authentication
+app.set('trust proxy', true);
 
 // connect to socket
 initSocket(httpServer);
@@ -39,7 +40,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', (req, res) => {
+app.get('/api/v1/health', (req, res) => {
   res.status(200).json({
     success: true,
   });

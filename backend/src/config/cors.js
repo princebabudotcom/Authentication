@@ -1,6 +1,7 @@
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://10.79.61.221',
 
   'https://yourapp.com',
   'https://admin.yourapp.com',

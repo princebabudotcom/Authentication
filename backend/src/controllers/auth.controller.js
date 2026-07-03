@@ -2,6 +2,8 @@ import config from '../config/config.js';
 import authService from '../services/auth.service.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import getDeviceInfo from '../utils/deviceInfo.js';
+import { getLocation } from '../utils/getLocation.js';
 
 /**
  * Phase 1
@@ -14,10 +16,14 @@ import asyncHandler from '../utils/asyncHandler.js';
  */
 
 const register = asyncHandler(async (req, res) => {
+  const { browser, device, userAgent, os } = getDeviceInfo(req);
   const { accessToken, refreshToken, user } = await authService.register(
     req.body,
     req.ip,
-    req.headers['user-agent']
+    userAgent,
+    browser,
+    device,
+    os
   );
 
   if (!accessToken || !refreshToken || !user) {
@@ -49,12 +55,17 @@ const register = asyncHandler(async (req, res) => {
  */
 
 const login = asyncHandler(async (req, res) => {
+  const { browser, device, userAgent, os } = getDeviceInfo(req);
+
   const { identifier, password } = req.body;
   const { accessToken, refreshToken, user } = await authService.login(
     identifier,
     password,
     req.ip,
-    req.headers['user-agent']
+    userAgent,
+    browser,
+    device,
+    os
   );
 
   res.cookie('refreshToken', refreshToken, {

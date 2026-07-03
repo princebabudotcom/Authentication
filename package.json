@@ -1,0 +1,19 @@
+{
+  "name": "my-desktop-app",
+  "version": "1.0.0",
+  "description": "Electron + React + Express Development",
+  "type": "module",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "electron": "wait-on http://localhost:5173 && electron .",
+    "dev": "concurrently -k \"npm run backend\" \"npm run frontend\" \"npm run electron\""
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3",
+    "electron": "^43.0.0",
+    "wait-on": "^9.0.10"
+  }
+}

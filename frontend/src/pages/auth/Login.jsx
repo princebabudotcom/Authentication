@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import AuthApi from "../../../api/AuthApi";
+import { useNotification } from "../../context/notification/NotificationProvider";
 
 const GoogleIcon = (props) => (
   <svg viewBox="0 0 48 48" className="w-[18px] h-[18px]" {...props}>
@@ -105,6 +106,8 @@ export default function LoginPage() {
     return newErrors;
   };
 
+  const notify = useNotification();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const validationErrors = validateForm();
@@ -114,7 +117,8 @@ export default function LoginPage() {
     }
     try {
       setLoading(true);
-      await AuthApi.login(formData);
+      const res = await AuthApi.login(formData);
+      navigate("/");
     } catch (error) {
       setErrors((prev) => ({
         ...prev,
