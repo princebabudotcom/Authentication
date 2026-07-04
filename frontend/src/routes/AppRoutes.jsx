@@ -5,6 +5,7 @@ import ProtectedRoute from "./PrivateRoute";
 import PublicRoute from "./PublicRoute";
 import PageLoader from "../components/Loader";
 import NotFound from "../pages/Home/PageNotFound";
+import UsersPage from "../admin/Pages/Users";
 
 // ── Layouts ──
 const PublicLayout = lazy(() => import("../App/PublicLayout"));
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
       { index: true, element: withSuspense(Home) },
       { path: "notifications", element: withSuspense(NotificationsPage) },
       { path: "user/verify-email", element: withSuspense(VerfiyEmail) },
+      { path: "users", element: withSuspense(UsersPage) },
     ],
   },
 
@@ -82,7 +84,7 @@ const router = createBrowserRouter([
       { path: "security", element: withSuspense(Sequrity) },
       { path: "password", element: withSuspense(Passwords) },
       { path: "backup-codes", element: withSuspense(BackupCodesPage) },
-      { path: "api-keys", element: <div>API Keys Page</div> },          
+      { path: "api-keys", element: <div>API Keys Page</div> },
       { path: "sessions", element: withSuspense(SessionsPage) },
       { path: "devices", element: <div>Devices Page</div> },
       { path: "login-history", element: withSuspense(LoginHistoryPage) },
@@ -96,6 +98,9 @@ const router = createBrowserRouter([
       { path: "delete-account", element: withSuspense(DeleteAccountPage) },
     ],
   },
+
+  // admin routes
+  {},
 
   // Catch-all route for 404 Not Found
   {

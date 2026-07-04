@@ -1,15 +1,6 @@
 import Session from '../models/session.model.js';
 
-const createSession = async (
-  userId,
-  refreshToken,
-  ip,
-  agent,
-  lastActiveAt,
-  browser,
-  device,
-  os
-) => {
+const createSession = async (userId, refreshToken, ip, agent, browser, device, os) => {
   const session = await Session.create({
     user: userId,
     refreshToken,
@@ -91,6 +82,16 @@ const rotate = ({ sessionId, newhash, ip, userAgent, expiresAt, lastActiveAt, ex
     },
     { new: true }
   );
+};
+
+const checkSameDevice = ({ userId, browser, os, device }) => {
+  return Session.findOne({
+    user: userId,
+    browser,
+    os,
+    device,
+    isRevoked: false, // important — don't match against an old revoked session
+  });
 };
 
 export default {

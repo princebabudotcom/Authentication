@@ -19,10 +19,11 @@ app.use(helmet()); // for setting various HTTP headers for security
 app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 app.use(passport.initialize()); // initialize passport for authentication
-app.set('trust proxy', true);
+app.set('trust proxy', true); // set proxy for per user
 
 // connect to socket
-initSocket(httpServer);
+const io = initSocket(httpServer);
+app.set('io', io);
 
 // routes
 import authRoute from './routes/auth.route.js';

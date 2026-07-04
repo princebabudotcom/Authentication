@@ -47,7 +47,7 @@ const register = async (userData, ip, agent, browser, device, os) => {
     hashedRefreshToken,
     ip,
     agent,
-    lastActiveAt,
+    new Date(),
     browser,
     device,
     os
@@ -135,20 +135,21 @@ const login = async (identifier, password, ip, agent, browser, device, os) => {
   const accessToken = user.generateAccessToken(session._id);
 
   // sending login alert email to user user .catch for for send
-  sendEmail({
-    to: user.email,
-    subject: 'New Login Alert',
-    html: LoginAlert({
-      fullName: user.fullName,
-      ip,
-      agent,
-      loginTime: new Date().toLocaleString(),
-      email: user.email,
-    }),
-  }).catch((error) => {
-    logger.error('Failed to send login alert email:', error);
-  });
-
+  if (config.NODE_ENV === 'production') {
+    sendEmail({
+      to: user.email,
+      subject: 'New Login Alert',
+      html: LoginAlert({
+        fullName: user.fullName,
+        ip,
+        agent,
+        loginTime: new Date().toLocaleString(),
+        email: user.email,
+      }),
+    }).catch((error) => {
+      logger.error('Failed to send login alert email:', error);
+    });
+  }
   const userJson = user.toJSON();
 
   return {

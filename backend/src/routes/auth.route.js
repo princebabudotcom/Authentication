@@ -92,4 +92,6 @@ router.get(
   authController.googleCallback
 );
 
+router.route('/login/alert').post(protect, authController.testAlert);
+
 export default router;

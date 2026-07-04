@@ -1,10 +1,9 @@
 import { Server } from 'socket.io';
 import logger from '../config/winston.logger.js';
 import { socketAuth } from '../middlewares/auth.middleware.js';
+import onlineUsers from '../utils/onlineUsers.js';
 
 export let io;
-
-const onlineUsers = new Map();
 
 export const initSocket = (httpServer) => {
   io = new Server(httpServer);
@@ -13,8 +12,6 @@ export const initSocket = (httpServer) => {
   io.use(socketAuth);
 
   io.on('connection', (socket) => {
-    logger.info(`User connected : ${socket.id}`);
-
     const userId = socket.user._id.toString();
 
     if (!onlineUsers.has(userId)) {
@@ -23,29 +20,29 @@ export const initSocket = (httpServer) => {
 
     onlineUsers.get(userId).add(socket.id);
 
-    // Notify everyone except current user
-
-    // Notify everyone except current user
-    socket.broadcast.emit('user-online', {
-      userId,
-      // isOnline: 'Online',
-    });
+    logger.info(`Socket Connected | User: ${userId} | Socket: ${socket.id}`);
 
     socket.on('disconnect', () => {
-      onlineUsers.get(userId)?.delete(socket.id);
+      const sockets = onlineUsers.get(userId);
 
-      if (onlineUsers.get(userId)?.size === 0) {
-        onlineUsers.delete(userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+
+        if (sockets.size === 0) {
+          onlineUsers.delete(userId);
+        }
       }
 
-      socket.broadcast.emit('user-offline', {
-        userId,
-        // isOnline: 'Offline',
-      });
-
-      logger.info(`User Disconnected : ${socket.id}`);
+      logger.info(`Socket Disconnected | User: ${userId} | Socket: ${socket.id}`);
     });
   });
 
   return io;
 };
+
+export function emitToUser(io, userId, event, payload) {
+  const sockets = onlineUsers.get(userId.toString());
+  if (!sockets) return false; // user is offline
+  sockets.forEach((socketId) => io.to(socketId).emit(event, payload));
+  return true;
+}

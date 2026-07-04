@@ -1,5 +1,6 @@
 import config from '../config/config.js';
 import authService from '../services/auth.service.js';
+import notificationService from '../services/notification.service.js';
 import ApiError from '../utils/apiError.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import getDeviceInfo from '../utils/deviceInfo.js';
@@ -267,6 +268,21 @@ const googleCallback = asyncHandler(async (req, res) => {
   });
 });
 
+const testAlert = asyncHandler(async (req, res) => {
+  const notif = await notificationService.createNotification(req.app.get('io'), {
+    receiver: req.user._id,
+    title: 'Reuse detection',
+    type: 'login',
+    metadata: {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    },
+    message: 'User login alert',
+  });
+
+  res.json(notif);
+});
+
 export default {
   register,
   login,
@@ -284,4 +300,5 @@ export default {
 
   // google callback
   googleCallback,
+  testAlert,
 };
