@@ -16,6 +16,10 @@ import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
  *  - useNotification(): call from ANY component to fire a popup.
  *  - Only ever one popup on screen. If a new one comes in while
  *    another is showing, it queues and plays right after.
+ *
+ *  NOTE: This provider has NO knowledge of sockets, auth, or where
+ *  notifications come from. It only knows how to display them.
+ *  Socket listening lives in AuthProvider — see notify.info() calls there.
  * ------------------------------------------------------------------ */
 
 const NotificationContext = createContext(null);
@@ -64,7 +68,6 @@ export function NotificationProvider({ children }) {
   const dismiss = useCallback(() => {
     clearTimeout(timerRef.current);
     setCurrent(null);
-    // small gap so exit/enter animations don't collide
     setTimeout(playNext, 200);
   }, [playNext]);
 
@@ -96,7 +99,6 @@ export function NotificationProvider({ children }) {
     info: (title, description, opts) =>
       notify("info", title, description, opts),
   });
-  // keep the callable api stable, but always pointing at the latest notify
   api.current.success = (title, description, opts) =>
     notify("success", title, description, opts);
   api.current.error = (title, description, opts) =>
@@ -178,64 +180,4 @@ export function useNotification() {
     );
   }
   return ctx;
-}
-
-/* ------------------------------------------------------------------ *
- *  Demo — remove this in your real app, it just proves the queue
- *  only ever shows one popup at a time even if you fire several.
- * ------------------------------------------------------------------ */
-
-function Demo() {
-  const notify = useNotification();
-
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-black">
-      <p className="mb-2 text-sm text-white/40">
-        Click a few fast — they queue, one popup shows at a time.
-      </p>
-      <div className="flex flex-wrap justify-center gap-3">
-        <button
-          onClick={() => notify.success("Signed in", "Welcome back, Prince.")}
-          className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-[#052b1e] hover:bg-emerald-400"
-        >
-          Success
-        </button>
-        <button
-          onClick={() =>
-            notify.error("Sign-in failed", "Check your email and password.")
-          }
-          className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white hover:bg-rose-400"
-        >
-          Error
-        </button>
-        <button
-          onClick={() =>
-            notify.warning(
-              "Session expiring",
-              "You'll be signed out in 2 minutes.",
-            )
-          }
-          className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-medium text-black hover:bg-amber-300"
-        >
-          Warning
-        </button>
-        <button
-          onClick={() =>
-            notify.info("New device", "A new session started on iPhone 14.")
-          }
-          className="rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-white/80 hover:bg-white/5"
-        >
-          Info
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function App() {
-  return (
-    <NotificationProvider>
-      <Demo />
-    </NotificationProvider>
-  );
 }

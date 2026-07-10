@@ -6,7 +6,12 @@ import onlineUsers from '../utils/onlineUsers.js';
 export let io;
 
 export const initSocket = (httpServer) => {
-  io = new Server(httpServer);
+  io = new Server(httpServer, {
+    cors: {
+      origin: 'http://localhost:5173',
+      credentials: true,
+    },
+  });
 
   // socket auth middleware
   io.use(socketAuth);
@@ -20,7 +25,9 @@ export const initSocket = (httpServer) => {
 
     onlineUsers.get(userId).add(socket.id);
 
-    logger.info(`Socket Connected | User: ${userId} | Socket: ${socket.id}`);
+    logger.info(
+      `Socket Connected | User: ${userId} | Socket: ${socket.id} | Email: ${socket.user.email}`
+    );
 
     socket.on('disconnect', () => {
       const sockets = onlineUsers.get(userId);

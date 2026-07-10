@@ -8,11 +8,11 @@ import router from "./routes/AppRoutes.jsx";
 import { NetworkStatusProvider } from "./context/network/Networkstatusprovider.jsx";
 
 createRoot(document.getElementById("root")).render(
-  <NotificationProvider>
-    <NetworkStatusProvider>
-      <AuthProvider>
+  <NetworkStatusProvider>
+    <AuthProvider>
+      <NotificationProvider>
         <RouterProvider router={router} />
-      </AuthProvider>
-    </NetworkStatusProvider>
-  </NotificationProvider>,
+      </NotificationProvider>
+    </AuthProvider>
+  </NetworkStatusProvider>,
 );

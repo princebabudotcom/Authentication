@@ -15,6 +15,8 @@ import { passwordChangedEmailTemplate } from '../emails/templates/forgot.Passwor
 
 import { UAParser } from 'ua-parser-js';
 import asyncHandler from '../utils/asyncHandler.js';
+import notificationService from './notification.service.js';
+import { io } from '../socket/index.js';
 
 const getMe = async (userId) => {
   const user = await userRepo.findUserById(userId);
@@ -71,6 +73,16 @@ const updateProfile = async (userData, userId) => {
   });
   // user.password = undefined;
 
+  await notificationService.createNotification(io, {
+    receiver: userId,
+    type: 'system',
+    title: 'User profile update successfully',
+    message: `${user.fullName} your profile update successfully`,
+    metadata: {
+      email: user.email,
+    },
+  });
+
   return {
     success: true,
     message: `Profile updated successfully`,
@@ -108,6 +120,17 @@ const updateAvatar = async (userId, file) => {
       logger.error('Failed to delete old avatar file:', error);
     });
   }
+
+  await notificationService.createNotification(io, {
+    receiver: user._id,
+    sender: user._id,
+    type: 'system',
+    title: 'Profile Picture Updated',
+    message: 'Your profile picture has been updated successfully.',
+    metadata: {
+      avatarUrl: user.avatar.url,
+    },
+  });
 
   return {
     success: true,

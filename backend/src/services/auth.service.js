@@ -14,6 +14,8 @@ import User from '../models/user.model.js';
 import emailVerifiedTemplate from '../emails/templates/emailVerified.email.js';
 import { passwordResetEmailTemplate } from '../emails/templates/forgot.Password.email.js';
 import getDeviceInfo from '../utils/deviceInfo.js';
+import notificationService from './notification.service.js';
+import { io } from '../socket/index.js';
 
 /**
  * Phase 1
@@ -311,16 +313,28 @@ const sendEmailVarification = async ({ email, userId }) => {
     $inc: { emailVerificationAttempts: 1 },
   });
 
-  sendEmail({
-    to: email,
-    subject: 'Verify Your Email Address',
-    html: verifyEmailTemplate({
-      fullName: user?.fullName,
-      otp: OTP,
-    }),
-  }).catch((err) => {
-    throw new ApiError('Error on sending email OTP');
-    logger.error(`Error on sending email OTP ${err} `);
+  if (config.NODE_ENV === 'production') {
+    sendEmail({
+      to: email,
+      subject: 'Verify Your Email Address',
+      html: verifyEmailTemplate({
+        fullName: user?.fullName,
+        otp: OTP,
+      }),
+    }).catch((err) => {
+      throw new ApiError('Error on sending email OTP');
+      logger.error(`Error on sending email OTP ${err} `);
+    });
+  }
+
+  await notificationService.createNotification(io, {
+    receiver: userId,
+    type: 'email_verified',
+    title: 'Email sent',
+    message: 'Email verification OTP sent to email , check your email',
+    metadata: {
+      email: user.email,
+    },
   });
 
   return {

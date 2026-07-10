@@ -165,15 +165,6 @@ const features = [
   },
 ];
 
-const onlineUsers = [
-  { name: "Aarav Sharma", role: "Backend Dev", status: "online" },
-  { name: "Priya Verma", role: "Frontend Dev", status: "online" },
-  { name: "Rohan Mehta", role: "DevOps Engineer", status: "online" },
-  { name: "Sneha Kapoor", role: "Full Stack Dev", status: "offline" },
-  { name: "Vikram Singh", role: "QA Engineer", status: "offline" },
-  { name: "Ananya Joshi", role: "UI/UX Designer", status: "online" },
-];
-
 /* ── variants ── */
 const fadeUp = (delay = 0) => ({
   hidden: { opacity: 0, y: 20 },
@@ -209,7 +200,7 @@ const statusBadge = {
 
 export default function HomePage() {
   const starsRef = useRef([]);
-  const { user } = useAuth();
+  const { user, isOnline } = useAuth();
 
   const handleStarHover = (i) => {
     gsap.to(starsRef.current.slice(0, i + 1), {
@@ -261,9 +252,11 @@ export default function HomePage() {
             <p className="text-sm font-medium text-white truncate leading-none">
               {user?.fullName ?? "User"}
             </p>
-            <p className="text-[11px] text-zinc-500 mt-0.5 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              Online
+            <p className="text-[11px] text-zinc-500 mt-0.5 flex items-center gap-1.5">
+              <StatusDot status={isOnline ? "online" : "offline"} />
+              <span className={isOnline ? "text-emerald-400" : "text-zinc-600"}>
+                {isOnline ? "Online" : "Offline"}
+              </span>
             </p>
           </div>
         </div>
@@ -437,53 +430,6 @@ export default function HomePage() {
             );
           })}
         </motion.div>
-      </motion.div>
-
-      {/* ── Online users ── */}
-      <motion.div initial="hidden" animate="show" variants={fadeUp(0.25)}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-white">Active users</h2>
-          <span className="text-xs text-zinc-500">
-            {onlineUsers.filter((u) => u.status === "online").length} online
-          </span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-          {onlineUsers.map((u, i) => {
-            const ini = u.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("");
-            return (
-              <motion.div
-                key={u.name}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                className="flex items-center justify-between bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-xs font-semibold text-emerald-400 flex items-center justify-center shrink-0">
-                    {ini}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white leading-snug">
-                      {u.name}
-                    </p>
-                    <p className="text-[11px] text-zinc-500">{u.role}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`text-[11px] ${u.status === "online" ? "text-emerald-400" : "text-zinc-600"}`}
-                  >
-                    {u.status === "online" ? "Online" : "Offline"}
-                  </span>
-                  <StatusDot status={u.status} />
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
       </motion.div>
 
       {/* ── Rate section ── */}
