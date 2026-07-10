@@ -1,6 +1,8 @@
+import config from './config.js';
+
 const allowedOrigins = [
   'http://localhost:5173',
-  'http://localhost:3000',
+  config.CLIENT_URL,
   'http://10.79.61.221',
 
   'https://yourapp.com',
