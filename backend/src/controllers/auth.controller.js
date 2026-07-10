@@ -261,7 +261,7 @@ const googleCallback = asyncHandler(async (req, res) => {
     maxAge: 15 * 60 * 1000, // 15 minutes
   });
 
-  res.redirect('http://localhost:5173/').status(200).json({
+  res.redirect(config.CLIENT_URL).status(200).json({
     success: true,
     message: 'Google authentication successful',
     user,
