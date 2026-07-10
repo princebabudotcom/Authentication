@@ -5,6 +5,7 @@ import userService from '../services/user.service.js';
 import ApiError from '../utils/apiError.js';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
+import logger from '../config/winston.logger.js';
 
 const protect = async (req, res, next) => {
   try {
@@ -18,6 +19,8 @@ const protect = async (req, res, next) => {
     if (!token) {
       return next(new ApiError(401, 'Not authorized, no token'));
     }
+
+    logger.debug(token.toString());
 
     const decoded = jwt.verify(token, config.ACCESS_TOKEN);
 
