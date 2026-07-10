@@ -16,6 +16,14 @@ import { getLocation } from '../utils/getLocation.js';
  * Register user and create session with refresh token and access token
  */
 
+const isProduction = config.NODE_ENV === 'production';
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
+};
+
 const register = asyncHandler(async (req, res) => {
   const { browser, device, userAgent, os } = getDeviceInfo(req);
   const { accessToken, refreshToken, user } = await authService.register(
@@ -32,17 +40,13 @@ const register = asyncHandler(async (req, res) => {
   }
 
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
   });
 
   res.status(201).json({
@@ -70,17 +74,13 @@ const login = asyncHandler(async (req, res) => {
   );
 
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
   });
 
   res.status(200).json(user);
@@ -101,18 +101,13 @@ const refreshToken = asyncHandler(async (req, res) => {
 
   // set new refresh token and access token in httpOnly cookies
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
-  // set new access token in httpOnly cookie with 15 minutes expiration
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: config.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
   });
 
   res.status(200).json({
@@ -248,17 +243,13 @@ const googleCallback = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken, user } = await authService.googleCallback(req);
 
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    ...cookieOptions,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    ...cookieOptions,
+    maxAge: 15 * 60 * 1000,
   });
 
   res.redirect(config.CLIENT_URL).status(200).json({
