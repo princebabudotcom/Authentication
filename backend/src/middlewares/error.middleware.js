@@ -1,4 +1,4 @@
-import ApiError from '../utils/ApiError.js';
+import ApiError from '../utils/apiError.js';
 
 const errorMiddleware = (err, req, res, next) => {
   // console.error(err); // 🔥 VERY IMPORTANT
