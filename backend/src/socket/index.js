@@ -2,13 +2,14 @@ import { Server } from 'socket.io';
 import logger from '../config/winston.logger.js';
 import { socketAuth } from '../middlewares/auth.middleware.js';
 import onlineUsers from '../utils/onlineUsers.js';
+import config from '../config/config.js';
 
 export let io;
 
 export const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: 'http://localhost:5173',
+      origin: config.CLIENT_URL,
       credentials: true,
     },
   });
