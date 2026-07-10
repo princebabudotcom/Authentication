@@ -9,7 +9,7 @@ const login = async (credentials) => {
 };
 
 const googleAuth = () => {
-  window.location.href = "http://localhost:5000/api/v1/auth/google";
+  window.location.href = `${import.meta.env.VITE_SERVER_URL}/auth/google`;
 };
 
 export default {
