@@ -39,7 +39,8 @@ const register = async (userData, ip, agent, browser, device, os) => {
   const user = await userRepo.createUser(userData);
 
   // Generate access token and refresh token for the new user
-  const refreshToken = user.generateRefreshToken();
+  const familyId = crypto.randomUUID();
+  const refreshToken = user.generateRefreshToken(familyId);
 
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
 
@@ -49,10 +50,10 @@ const register = async (userData, ip, agent, browser, device, os) => {
     hashedRefreshToken,
     ip,
     agent,
-    new Date(),
     browser,
     device,
-    os
+    os,
+    familyId // same value, stored in DB too
   );
 
   // create accesstoken
@@ -105,9 +106,10 @@ const login = async (identifier, password, ip, agent, browser, device, os) => {
     throw new ApiError(401, 'Invalid credentials');
   }
 
+  const familyId = crypto.randomUUID();
   // Generate access token and refresh token for the user
 
-  const refreshToken = user.generateRefreshToken();
+  const refreshToken = user.generateRefreshToken(familyId);
 
   // hashed token to store in session
   const hashedRefreshToken = crypto.createHash('sha256').update(refreshToken).digest('hex');
@@ -121,10 +123,10 @@ const login = async (identifier, password, ip, agent, browser, device, os) => {
       hashedRefreshToken,
       ip,
       agent,
-      new Date(),
       browser,
       device,
-      os
+      os,
+      familyId // same value, stored in DB too
     ),
     // Reset login attempts and lock status on successful login
     userRepo.updateUser(user._id, {
@@ -180,7 +182,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
 
   // Possible stolen/old refresh token
   if (!session) {
-    await sessionRepo.revokefamily(decoded.id);
+    await sessionRepo.revokefamily(decoded.familyId);
     throw new ApiError(401, 'Refresh token is invalid');
   }
 
@@ -194,7 +196,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
 
   // if session user id does not match decoded token user id or session is revoked, throw error
   if (session.user.toString() !== decoded.id.toString()) {
-    await sessionRepo.revokefamily(decoded.id);
+    await sessionRepo.revokefamily(decoded.familyId);
     throw new ApiError(401, 'Refresh Token misMatch');
   }
 
@@ -203,7 +205,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
   if (!user) throw new ApiError(404, 'User not found\n');
 
   // Generate New Tokens
-  const newRefreshToken = user.generateRefreshToken();
+  const newRefreshToken = user.generateRefreshToken(session.familyId);
   const newAccessToken = user.generateAccessToken(session._id);
 
   // new token hash
@@ -219,6 +221,7 @@ const refreshToken = async (refreshToken, ip, agent) => {
   });
 
   if (!updated) {
+    await sessionRepo.revokefamily(session.familyId);
     throw new ApiError(401, 'Refresh token already used');
   }
 

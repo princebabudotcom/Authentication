@@ -227,10 +227,11 @@ userSchema.methods.generateAccessToken = function (sessionId) {
 |--------------------------------------------------------------------------
 */
 
-userSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function (familyId) {
   return jwt.sign(
     {
       id: this._id,
+      familyId,
     },
     process.env.REFRESH_TOKEN_SECRET,
     {

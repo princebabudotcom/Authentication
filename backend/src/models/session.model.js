@@ -1,6 +1,7 @@
 // models/Session.js
 
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 
 const sessionSchema = new mongoose.Schema(
   {
@@ -83,13 +84,16 @@ const sessionSchema = new mongoose.Schema(
       default: '',
     },
 
+    familyId: {
+      type: String,
+      required: true,
+    },
+
     /*
     |--------------------------------------------------------------------------
     | SESSION TIMING
     |--------------------------------------------------------------------------
-    */
-
-    expiresAt: {
+    */ expiresAt: {
       type: Date,
       required: true,
       index: true,

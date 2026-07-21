@@ -1,16 +1,17 @@
 import Session from '../models/session.model.js';
 
-const createSession = async (userId, refreshToken, ip, agent, browser, device, os) => {
+const createSession = async (userId, refreshToken, ip, agent, browser, device, os, familyId) => {
   const session = await Session.create({
-    user: userId,
-    refreshToken,
-    ipAddress: ip,
-    userAgent: agent,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    user: userId, // ✅ user._id
+    refreshToken, // ✅ hashedRefreshToken
+    ipAddress: ip, // ✅ ip
+    userAgent: agent, // ✅ agent
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     lastActiveAt: new Date(),
-    browser,
-    device,
-    os,
+    browser, // ✅ browser
+    device, // ✅ device
+    os, // ✅ os
+    familyId, // ✅ familyId
   });
 
   return session;
@@ -66,8 +67,8 @@ const findAllSessions = (userId) => {
   });
 };
 
-const revokefamily = (UserId) => {
-  return Session.updateMany({ user: UserId }, { isRevoked: true });
+const revokefamily = async (familyId) => {
+  return Session.updateMany({ familyId }, { isRevoked: true, revokedReason: 'Reuse detected' });
 };
 
 const rotate = ({ sessionId, newhash, ip, userAgent, expiresAt, lastActiveAt, exceptedhash }) => {
