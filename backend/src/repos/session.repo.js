@@ -64,7 +64,7 @@ const findAllSessions = (userId) => {
   return Session.find({
     user: userId,
     isRevoked: false,
-  });
+  }).sort({ createdAt: -1 });
 };
 
 const revokefamily = async (familyId) => {

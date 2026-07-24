@@ -130,7 +130,7 @@ const login = async (identifier, password, ip, agent, browser, device, os) => {
     ),
     // Reset login attempts and lock status on successful login
     userRepo.updateUser(user._id, {
-      lastlogin: new Date(),
+      lastLogin: new Date(),
       lockUntil: undefined,
       loginAttempts: 0, // Reset login attempts on successful login
     }),
@@ -164,45 +164,108 @@ const login = async (identifier, password, ip, agent, browser, device, os) => {
 };
 
 const refreshToken = async (refreshToken, ip, agent) => {
-  if (!refreshToken) throw new ApiError(404, 'Refresh token is required');
+  logger.debug('refreshToken: request received', { ip, agent });
+
+  if (!refreshToken) {
+    logger.warn('refreshToken: missing token in request', { ip });
+    throw new ApiError(404, 'Refresh token is required');
+  }
 
   // token payload
   let decoded;
 
   try {
     decoded = jwt.verify(refreshToken, config.REFRESH_TOKEN);
+    logger.debug('refreshToken: token verified', {
+      userId: decoded.id,
+      familyId: decoded.familyId,
+    });
   } catch (error) {
+    logger.warn('refreshToken: jwt verify failed', { error: error.message, ip });
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
 
   // hashed refreshToken
   const refreshTokenHash = generateCode.generateHash(refreshToken);
+  logger.debug('refreshToken: computed hash for lookup', { familyId: decoded.familyId });
 
   const session = await sessionRepo.findSession(refreshTokenHash);
 
   // Possible stolen/old refresh token
   if (!session) {
+    logger.error('refreshToken: no session found for hash — possible reuse/theft', {
+      userId: decoded.id,
+      familyId: decoded.familyId,
+      ip,
+      agent,
+    });
     await sessionRepo.revokefamily(decoded.familyId);
     throw new ApiError(401, 'Refresh token is invalid');
   }
 
-  if (session.isRevoked) throw new ApiError(401, 'Session has been revoked');
+  logger.debug('refreshToken: session found', {
+    sessionId: session._id,
+    familyId: session.familyId,
+  });
+
+  if (session.isRevoked) {
+    logger.warn('refreshToken: session already revoked', {
+      sessionId: session._id,
+      userId: decoded.id,
+    });
+    throw new ApiError(401, 'Session has been revoked');
+  }
 
   // if session is expired
   if (session.expiresAt.getTime() < Date.now()) {
+    logger.info('refreshToken: session expired', {
+      sessionId: session._id,
+      expiresAt: session.expiresAt,
+    });
     await session.revoke('Session is expired');
-    throw new ApiError(400, 'Session is expired');
+    throw new ApiError(401, 'Session is expired');
   }
 
-  // if session user id does not match decoded token user id or session is revoked, throw error
+  // user mismatch check
   if (session.user.toString() !== decoded.id.toString()) {
+    logger.error('refreshToken: user mismatch — session.user vs token.id', {
+      sessionUser: session.user.toString(),
+      tokenUser: decoded.id.toString(),
+      familyId: decoded.familyId,
+    });
     await sessionRepo.revokefamily(decoded.familyId);
     throw new ApiError(401, 'Refresh Token misMatch');
   }
 
+  // family-id cross-check
+  if (session.familyId.toString() !== decoded.familyId?.toString()) {
+    logger.error('refreshToken: familyId mismatch between session and token', {
+      sessionFamilyId: session.familyId.toString(),
+      tokenFamilyId: decoded.familyId,
+    });
+    await sessionRepo.revokefamily(decoded.familyId);
+    throw new ApiError(401, 'Refresh token family mismatch');
+  }
+
   // find user
   const user = await userRepo.findUserById(decoded.id);
-  if (!user) throw new ApiError(404, 'User not found\n');
+  if (!user) {
+    logger.error('refreshToken: user not found for valid session', {
+      userId: decoded.id,
+      sessionId: session._id,
+    });
+    throw new ApiError(404, 'User not found');
+  }
+
+  // absolute session lifetime cap
+  if (session.absoluteExpiresAt && session.absoluteExpiresAt.getTime() < Date.now()) {
+    logger.info('refreshToken: absolute session lifetime exceeded', {
+      sessionId: session._id,
+      absoluteExpiresAt: session.absoluteExpiresAt,
+    });
+    await sessionRepo.revokefamily(session.familyId);
+    throw new ApiError(401, 'Session has exceeded maximum lifetime');
+  }
 
   // Generate New Tokens
   const newRefreshToken = user.generateRefreshToken(session.familyId);
@@ -210,6 +273,11 @@ const refreshToken = async (refreshToken, ip, agent) => {
 
   // new token hash
   const newRefreshTokenHash = generateCode.generateHash(newRefreshToken);
+
+  logger.debug('refreshToken: attempting rotation', {
+    sessionId: session._id,
+    familyId: session.familyId,
+  });
 
   const updated = await sessionRepo.rotate({
     sessionId: session._id,
@@ -221,9 +289,15 @@ const refreshToken = async (refreshToken, ip, agent) => {
   });
 
   if (!updated) {
+    logger.error('refreshToken: rotation failed — token already used (race condition or reuse)', {
+      sessionId: session._id,
+      familyId: session.familyId,
+    });
     await sessionRepo.revokefamily(session.familyId);
     throw new ApiError(401, 'Refresh token already used');
   }
+
+  logger.info('refreshToken: rotation successful', { sessionId: session._id, userId: decoded.id });
 
   // return tokens
   return {
@@ -478,6 +552,7 @@ const resetPasswordByEmailLink = async ({ email, token, password }) => {
   };
 };
 
+// google callback to login with google
 const googleCallback = async (req) => {
   const user = req.user;
 

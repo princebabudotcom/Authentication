@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { gsap } from "gsap";
 import { NavLink } from "react-router-dom";
@@ -20,43 +20,10 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import useAuth from "../../context/auth/UseAuth";
+import userApi from "../../../api/user.api";
+// adjust path to match your project structure
 
-/* ── mock data ── */
-const stats = [
-  {
-    label: "Active sessions",
-    value: "3",
-    sub: "across devices",
-    icon: Monitor,
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-  },
-  {
-    label: "Last sign-in",
-    value: "2m",
-    sub: "ago from this device",
-    icon: LogIn,
-    color: "text-blue-400",
-    bg: "bg-blue-500/10",
-  },
-  {
-    label: "Notifications",
-    value: "5",
-    sub: "unread alerts",
-    icon: Bell,
-    color: "text-yellow-400",
-    bg: "bg-yellow-500/10",
-  },
-  {
-    label: "Account age",
-    value: "172d",
-    sub: "since joining",
-    icon: TrendingUp,
-    color: "text-purple-400",
-    bg: "bg-purple-500/10",
-  },
-];
-
+/* ── static mock data (kept fake for now) ── */
 const recentActivity = [
   {
     icon: LogIn,
@@ -180,6 +147,34 @@ const stagger = {
   show: { transition: { staggerChildren: 0.07 } },
 };
 
+/* ── helpers ── */
+
+// "2m ago", "4h ago", "3d ago" style relative time
+const timeAgo = (dateInput) => {
+  if (!dateInput) return "—";
+  const date = new Date(dateInput);
+  const diffMs = Date.now() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+
+  if (diffSec < 60) return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d`;
+};
+
+// account age in days from createdAt
+const accountAgeDays = (createdAt) => {
+  if (!createdAt) return "—";
+  const created = new Date(createdAt);
+  const diffDays = Math.floor(
+    (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return `${diffDays}d`;
+};
+
 /* ── small components ── */
 const StatusDot = ({ status }) => (
   <span className="relative flex h-2 w-2 shrink-0">
@@ -202,6 +197,42 @@ export default function HomePage() {
   const starsRef = useRef([]);
   const { user, isOnline } = useAuth();
 
+  const [sessionCount, setSessionCount] = useState(null);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState(false);
+
+  // fake notification count for now — replace with real notifications API later
+  const notificationCount = 5;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSessions = async () => {
+      try {
+        setSessionsLoading(true);
+        setSessionsError(false);
+
+        const res = await userApi.getAllSessions();
+
+        // adjust this path to match your actual API response shape
+        const sessions = res?.data?.data?.sessions ?? res?.data?.history ?? [];
+
+        if (isMounted) setSessionCount(sessions.length);
+      } catch (error) {
+        console.error("Failed to fetch sessions:", error);
+        if (isMounted) setSessionsError(true);
+      } finally {
+        if (isMounted) setSessionsLoading(false);
+      }
+    };
+
+    fetchSessions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleStarHover = (i) => {
     gsap.to(starsRef.current.slice(0, i + 1), {
       scale: 1.3,
@@ -218,6 +249,42 @@ export default function HomePage() {
       ?.split(" ")
       .map((n) => n[0])
       .join("") ?? "U";
+
+  // build stats using real user data + real session count
+  const stats = [
+    {
+      label: "Active sessions",
+      value: sessionsLoading ? "…" : sessionsError ? "—" : String(sessionCount),
+      sub: "across devices",
+      icon: Monitor,
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+    },
+    {
+      label: "Last sign-in",
+      value: timeAgo(user?.lastLogin),
+      sub: "ago from this device",
+      icon: LogIn,
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
+    },
+    {
+      label: "Notifications",
+      value: String(notificationCount), // fake for now
+      sub: "unread alerts",
+      icon: Bell,
+      color: "text-yellow-400",
+      bg: "bg-yellow-500/10",
+    },
+    {
+      label: "Account age",
+      value: accountAgeDays(user?.createdAt),
+      sub: "since joining",
+      icon: TrendingUp,
+      color: "text-purple-400",
+      bg: "bg-purple-500/10",
+    },
+  ];
 
   return (
     <div className="w-full space-y-6 pb-10">

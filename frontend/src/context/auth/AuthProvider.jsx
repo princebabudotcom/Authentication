@@ -76,6 +76,7 @@ const AuthProvider = ({ children }) => {
     };
   }, [loading, isAuthenticated]);
 
+  // console.log(user?.lastLogin);
   const logout = async () => {
     try {
       await instance.get("/auth/logout");
