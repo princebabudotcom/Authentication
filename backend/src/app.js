@@ -20,7 +20,7 @@ app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 app.use(passport.initialize()); // initialize passport for authentication
 
-if (config.NODE_ENV === 'production' ? 1 : false); // set proxy for per user
+app.set('trust proxy', config.NODE_ENV === 'production' ? 1 : false); // set proxy for per user
 
 // connect to socket
 const io = initSocket(httpServer);
