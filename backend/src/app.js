@@ -19,7 +19,8 @@ app.use(helmet()); // for setting various HTTP headers for security
 app.use(morganLogger); // for logging HTTP requests
 app.use(cors(corsOptions)); // use cors for cross-origin resource sharing
 app.use(passport.initialize()); // initialize passport for authentication
-app.set('trust proxy', true); // set proxy for per user
+
+if (config.NODE_ENV === 'production' ? 1 : false); // set proxy for per user
 
 // connect to socket
 const io = initSocket(httpServer);
@@ -50,6 +51,7 @@ app.get('/api/v1/health', (req, res) => {
 // error handling middleware
 import errorMiddleware from './middlewares/error.middleware.js';
 import corsOptions from './config/cors.js';
+import config from './config/config.js';
 
 app.use(errorMiddleware);
 

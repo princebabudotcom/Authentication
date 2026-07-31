@@ -2,6 +2,22 @@ import { Router } from 'express';
 import authController from '../controllers/auth.controller.js';
 import protect from '../middlewares/auth.middleware.js';
 import passport from 'passport';
+import {
+  authLimiter,
+  passwordLimiter,
+  refreshLimiter,
+  verificationLimiter,
+} from '../rateLimit/auth.limtter.js';
+import { validate } from '../middlewares/validate.middleware.js';
+
+import {
+  registerSchema,
+  loginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  verifyEmailSchema,
+  sendVerificationSchema,
+} from '../validation/auth.validation.js';
 
 const router = Router();
 
@@ -10,14 +26,14 @@ const router = Router();
  * Register user and create session with refresh token and access token
  */
 
-router.route('/register').post(authController.register);
+router.route('/register').post(authLimiter, validate(registerSchema), authController.register);
 
 /**
  * /api/v1/auth/login
  * Login user and create session with refresh and access token
  */
 
-router.route('/login').post(authController.login);
+router.route('/login').post(authLimiter, validate(loginSchema), authController.login);
 
 /**
  * /api/v1/auth/me
@@ -31,7 +47,7 @@ router.route('/me').get(protect, authController.getMe);
  * Create refresh token and access
  */
 
-router.route('/refresh').get(authController.refreshToken);
+router.route('/refresh').get(refreshLimiter, authController.refreshToken);
 
 /**
  * /api/v1/auth/logout
@@ -46,30 +62,43 @@ router.route('/logout').get(protect, authController.logout);
  */
 
 /**
- * /api/v1/auth/verify-email
+ * /api/v1/auth/send-verification-email
  */
 
-router.route('/send-verification-email').post(protect, authController.sendVerifyEmailOtp);
+router
+  .route('/send-verification-email')
+  .post(
+    verificationLimiter,
+    protect,
+    validate(sendVerificationSchema),
+    authController.sendVerifyEmailOtp
+  );
 
 /**
  * /api/v1/auth/verify-email
  */
 
-router.route('/verify-email').post(protect, authController.verifyEmail);
+router
+  .route('/verify-email')
+  .post(verificationLimiter, protect, validate(verifyEmailSchema), authController.verifyEmail);
 
 /**
  * /api/v1/auth/forgot-password
  * Reset password using email link
  */
 
-router.route('/forgot-password').post(authController.forgotPassword);
+router
+  .route('/forgot-password')
+  .post(passwordLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
 
 /**
- * /api/v1/auth/reset-password:token
+ * /api/v1/auth/reset-password
  * Reset password
  */
 
-router.route('/reset-password').post(authController.resetPassword);
+router
+  .route('/reset-password')
+  .post(passwordLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
 /**
  * /api/v1/auth/google

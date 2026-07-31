@@ -2,98 +2,103 @@ import express from 'express';
 import protect from '../middlewares/auth.middleware.js';
 import userController from '../controllers/user.controller.js';
 import upload from '../config/multer.config.js';
+
+import { userLimiter, sensitiveLimiter, uploadLimiter } from '../rateLimit/user.limtter.js';
+
+import {
+  updateProfileSchema,
+  transferEmailSchema,
+  deleteAccountSendCodeSchema,
+  deleteAccountVerifyCodeSchema,
+  changePasswordSchema,
+  logoutDeviceParamsSchema,
+  logoutAllSchema,
+  setPasswordSchema,
+} from '../validation/user.validation.js';
+
+import { validate, validateParams } from '../middlewares/validate.middleware.js';
+
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+/**
+ * Apply default rate limit to all user routes
+ */
+router.use(userLimiter);
+
+router.get('/', (req, res) => {
   res.send(req.ip);
 });
 
-router.route('/me').get(protect, userController.getMe);
+router.get('/me', protect, userController.getMe);
 
-/*
- * /api/v1/users/profile/
- * update profile picture
- */
-router.route('/profile').patch(protect, userController.updateProfile);
+router.patch('/profile', protect, validate(updateProfileSchema), userController.updateProfile);
 
-/*
- * /api/v1/users/profile/avatar
- * update profile picture
- */
+router.patch(
+  '/profile/avatar',
+  uploadLimiter,
+  protect,
+  upload.single('avatar'),
+  userController.updateAvatar
+);
 
-router
-  .route('/profile/avatar')
-  .patch(protect, upload.single('avatar'), userController.updateAvatar);
+router.patch(
+  '/profile/transfer-email',
+  sensitiveLimiter,
+  protect,
+  validate(transferEmailSchema),
+  userController.changeEmail
+);
 
-/*
- * PATCH /api/v1/users/profile/trasfer-email
- * Transfer email to another account
- */
+router.delete(
+  '/account/send-code',
+  sensitiveLimiter,
+  protect,
+  validate(deleteAccountSendCodeSchema),
+  userController.deleteAccountSendCode
+);
 
-router.route('/profile/transfer-email').patch(protect, userController.changeEmail);
+router.delete(
+  '/account/verify-code',
+  sensitiveLimiter,
+  protect,
+  validate(deleteAccountVerifyCodeSchema),
+  userController.deleteAccountVerifyCode
+);
 
-/*
- * DELETE /api/v1/users/account/send-code
- * Delete account
- */
+router.patch(
+  '/account/change-password',
+  sensitiveLimiter,
+  protect,
+  validate(changePasswordSchema),
+  userController.changePassword
+);
 
-router.route('/account/send-code').delete(protect, userController.deleteAccountSendCode);
+router.get('/account/login-history', protect, userController.loginHistory);
 
-/*
- * DELETE /api/v1/users/account/verify-code
- * Delete account
- */
+router.delete(
+  '/account/sessions/:id',
+  sensitiveLimiter,
+  protect,
+  validateParams(logoutDeviceParamsSchema),
+  userController.logoutDevice
+);
 
-router.route('/account/verify-code').delete(protect, userController.deleteAccountVerifyCode);
+router.patch(
+  '/account/logout-all',
+  sensitiveLimiter,
+  protect,
+  // validate(logoutAllSchema),
+  userController.logoutAllDevice
+);
 
-/*
- * DELETE /api/v1/users/account/change-password
- * PATCH account change password
- */
+router.patch(
+  '/account/set-password',
+  sensitiveLimiter,
+  protect,
+  validate(setPasswordSchema),
+  userController.setPassword
+);
 
-router.route('/account/change-password').patch(protect, userController.changePassword);
+router.get('/account/OAuth-providers', protect, userController.OAuthProviders);
 
-/*
- *  Phase 3 — User Activity System
- * Login history
- * Account activity
- * Recently used devices
- * User status
- * Online/offline tracking
- */
-
-/*
- * GET /api/v1/users/login-history
- * Get all Sessions
- */
-
-router.route('/account/login-history').get(protect, userController.loginHistory);
-
-/*
- * GET /api/v1/users/account/session:id
- * Get current sessions
- */
-
-router.route('/account/sessions/:id').delete(protect, userController.logoutDevice);
-
-/*
- * GET /api/v1/users/account/logout-all
- * Revoke all sessions
- */
-
-router.route('/account/logout-all').patch(protect, userController.logoutAllDevice);
-
-/*
- * SetPassword /api/v1/users/account/set-password
- * OAuth account set password
- */
-
-router.route('/account/set-password').patch(protect, userController.setPassword);
-
-/*
- * check providers /api/v1/users/account/set-password
- * OAuth account providers
- */
-
-router.route('/account/OAuth-providers').get(protect, userController.OAuthProviders);
 export default router;
